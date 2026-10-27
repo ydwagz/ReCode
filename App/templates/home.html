@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% load static %}
+
+
+<body>
+
+    <style>
+        .hero {
+        position: relative;
+        width: 100%;
+        min-height: 100vh;
+        min-height: 100svh;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+
+        background-image:
+        linear-gradient(
+            90deg,
+            rgba(5, 10, 20, 0.85),
+            rgba(5, 10, 20, 0.2)
+        ),
+        url("/static/images/recode-hero.png");
+
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+}
+    </style>
+
+<section class="hero">
+
+    <div class="hero-content">
+
+        <h1>
+            Sharpen your skills.
+            <span>Together.</span>
+        </h1>
+
+        <p class="hero-description">
+            ReCode is a community of coders who solve challenges,
+            support each other, and grow together. Join daily coding
+            challenges, team up with friends, and track your progress.
+        </p>
+
+        <div class="hero-buttons">
+
+            <a href="/recode" class="button">
+                Start Coding
+                <span class="arrow">&rarr;</span>
+            </a>
+
+            <a href="#features" class="button">
+                Learn More
+            </a>
+
+        </div>
+    </div>
+</section>
+{% endblock %}
