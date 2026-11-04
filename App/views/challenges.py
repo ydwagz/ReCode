@@ -64,6 +64,7 @@ def challenge_detail(request, slug):
     context = {
         "challenge": challenge,
         "examples": challenge.tests.filter(is_example=True),
+        "test_count": challenge.tests.count(),
         "entry": entry,
         "team": team,
         "history": history,

@@ -5,7 +5,7 @@
     <div class="r-card auth-card text-center">
         <span class="eyebrow">Team invite</span>
         <h1>{{ team.name }}</h1>
-        <p class="muted">{{ team.description|default:"You've been invited to join this team." }}</p>
+        <p class="muted">{{ team.description|default:"You're invited." }}</p>
         <p class="muted small">{{ team.member_count }}/5 members</p>
         {% if team.is_full %}
             <div class="flash flash-error">This team is full.</div>

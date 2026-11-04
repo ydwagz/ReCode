@@ -92,7 +92,7 @@
                 {% endfor %}
                 </tbody>
             </table>
-            {% else %}<div class="empty">No results yet. Your first solve shows up here.</div>{% endif %}
+            {% else %}<div class="empty">No results yet.</div>{% endif %}
         </div>
 
         <div class="r-card">
@@ -100,11 +100,11 @@
             {% if team %}
             <h3 class="mt-1"><a href="{{ team.get_absolute_url }}">{{ team.name }}</a></h3>
             <div class="avatars my-2">{% for m in team.active_members %}<span class="avatar" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
-            <p class="muted small mb-3">{{ team.member_count }} of 5 members, {{ team_streak }} day team streak</p>
+            <p class="muted small mb-3">{{ team.member_count }}/5 members, {{ team_streak }} day streak</p>
             <a class="btn-r btn-r-sm btn-r-ghost" href="{{ team.get_absolute_url }}">Open team</a>
             {% else %}
-            <p class="muted">Teams of up to 5 share one entry per challenge.</p>
-            <a class="btn-r btn-r-sm btn-r-primary" href="{% url 'teams' %}">Create or join a team</a>
+            <p class="muted">Play with up to 4 friends.</p>
+            <a class="btn-r btn-r-sm btn-r-primary" href="{% url 'teams' %}">Find a team</a>
             {% endif %}
         </div>
 
@@ -115,7 +115,7 @@
                 <li><span>{{ day.date|date:"D, M j" }}</span><span class="pill pill-{{ day.difficulty }}">{{ day.difficulty|title }}</span></li>
                 {% endfor %}
             </ul>
-            <p class="muted small mb-0">Titles stay hidden until 00:00 UTC.</p>
+            <p class="muted small mb-0">Titles reveal at 00:00 UTC.</p>
         </div>
 
         <div class="r-card quick-card">

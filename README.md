@@ -41,6 +41,16 @@ python manage.py test App
 | **Settings** | Account, default language, notification and privacy toggles, password, plugin token and webhooks. |
 | **Anti-cheat** | Rate limiting (3s between runs, 40 submissions/hour). Copy detection compares token streams, so renaming variables doesn't hide a copy, and flags suspects in the admin. Hidden test inputs and outputs are never sent to the browser, and solutions stay private until the deadline. |
 
+## Email verification
+
+New accounts confirm their email with a 6-digit code before they can play. In development the email is printed in the `runserver` console, so look there for the code. To send real email, set these environment variables:
+
+```bash
+RECODE_EMAIL_HOST=smtp.example.com RECODE_EMAIL_PORT=587 RECODE_EMAIL_USER=... RECODE_EMAIL_PASSWORD=... RECODE_EMAIL_FROM="ReCode <no-reply@example.com>"
+```
+
+Accounts that existed before verification was added are marked as verified automatically.
+
 ## IDE plugin and API
 
 Get your token from **Settings → Integrations**.

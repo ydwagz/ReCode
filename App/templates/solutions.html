@@ -22,8 +22,8 @@
 
     {% if locked %}
     <div class="r-card text-center p-5">
-        <h3>Shared solutions open after the deadline</h3>
-        <p class="muted">They stay hidden so nobody can copy their way up the board. Opens in</p>
+        <h3>Locked until close</h3>
+        <p class="muted">Opens in</p>
         <span class="tile-clock" style="font-size: 26px" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
     </div>
     {% else %}

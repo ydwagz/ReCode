@@ -1,64 +1,55 @@
 {% extends 'base.html' %}
-{% load static recode %}
+{% load recode %}
 {% block title %}One problem a day{% endblock %}
 {% block body_class %}page-home{% endblock %}
 
 {% block content %}
-<section class="hero hero-home" style="background-image: linear-gradient(90deg, rgba(14,16,32,.96) 0%, rgba(14,16,32,.82) 45%, rgba(14,16,32,.35) 100%), url('{% static 'images/recode-hero.png' %}');">
+<section class="hero hero-home">
     <div class="hero-content">
         <h1>One problem a day.</h1>
-        <p class="hero-description">
-            Everyone gets the same coding challenge at 00:00 UTC. Solve it alone or with up to four friends,
-            and see where you land on the live leaderboard before it closes.
-        </p>
+        <p class="hero-description">Same problem for everyone. Solo or in a team of five. Ranked live.</p>
         <div class="hero-buttons">
             <a href="{% url 'today' %}" class="button">Solve today's problem</a>
-            {% if not user.is_authenticated %}<a href="{% url 'register' %}" class="button button-ghost">Create an account</a>{% endif %}
+            {% if not user.is_authenticated %}<a href="{% url 'register' %}" class="button button-ghost">Sign up</a>{% endif %}
         </div>
-
         <div class="drop-card">
             <div>
-                <div class="drop-meta">Today's problem closes in</div>
+                <div class="drop-meta">Closes in</div>
                 <span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
             </div>
             <div class="drop-meta">
-                <span class="pill">{{ challenge.get_difficulty_display }}</span>
+                <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
                 <h3>{{ challenge.title }}</h3>
-                {{ solvers }} solved so far
+                {{ solvers }} solved
             </div>
         </div>
     </div>
 </section>
 
 <section class="page section">
-    <div class="section-head">
-        <h2>How a day works</h2>
-        <p>The whole loop fits in 24 hours, and it starts over every night.</p>
-    </div>
     <ol class="day-line">
-        <li><span class="when">00:00</span><h4>The problem drops</h4><p>A new challenge opens for everyone at midnight UTC.</p></li>
-        <li><span class="when">Start</span><h4>Your clock starts</h4><p>Speed is measured from when you press start, not from midnight.</p></li>
-        <li><span class="when">Live</span><h4>The board moves</h4><p>Every accepted solution lands on the leaderboard as it happens.</p></li>
-        <li><span class="when">24:00</span><h4>Solutions unlock</h4><p>The explanation and everyone's shared code open up for discussion.</p></li>
+        <li><span class="when">00:00</span><h4>Drop</h4><p>A new problem opens.</p></li>
+        <li><span class="when">Start</span><h4>Clock starts</h4><p>Speed counts from your start.</p></li>
+        <li><span class="when">Live</span><h4>Rank</h4><p>Solves hit the board instantly.</p></li>
+        <li><span class="when">24:00</span><h4>Reveal</h4><p>Solutions unlock.</p></li>
     </ol>
 </section>
 
 <section class="page section">
     <div class="row g-4 g-lg-5">
         <div class="col-lg-6">
-            <div class="section-head mb-3"><h2>What earns points</h2></div>
+            <h2 class="mb-3">Points</h2>
             <table class="points-table">
                 <tbody>
-                    <tr><td class="pts">60</td><td><strong>Correctness</strong><span class="muted">Every test must pass. There's no partial credit.</span></td></tr>
-                    <tr><td class="pts">20</td><td><strong>Attempts</strong><span class="muted">Each failed submission costs a little more than the one before.</span></td></tr>
-                    <tr><td class="pts">10</td><td><strong>Speed</strong><span class="muted">Full points if you solve it within five minutes of starting.</span></td></tr>
-                    <tr><td class="pts">10</td><td><strong>Efficiency</strong><span class="muted">Runtime and memory, compared with the reference solution.</span></td></tr>
+                    <tr><td class="pts">60</td><td><strong>Correct</strong><span class="muted">All tests pass.</span></td></tr>
+                    <tr><td class="pts">20</td><td><strong>Attempts</strong><span class="muted">Fewer fails, more points.</span></td></tr>
+                    <tr><td class="pts">10</td><td><strong>Speed</strong><span class="muted">Full marks under 5 minutes.</span></td></tr>
+                    <tr><td class="pts">10</td><td><strong>Efficiency</strong><span class="muted">Fast, lean code.</span></td></tr>
                 </tbody>
             </table>
-            <p class="muted small mt-3">Ties go to whoever solved it faster.</p>
         </div>
         <div class="col-lg-6">
-            <div class="section-head mb-3 d-flex align-items-center gap-3"><h2 class="mb-0">Today's top 5</h2><span class="live-dot">Live</span></div>
+            <div class="d-flex align-items-center gap-3 mb-3"><h2 class="mb-0">Top 5</h2><span class="live-dot">Live</span></div>
             {% if top %}
             <ol class="mini-board">
                 {% for row in top %}
@@ -66,22 +57,10 @@
                 {% endfor %}
             </ol>
             {% else %}
-            <div class="empty">Nobody has solved today's problem yet.</div>
+            <div class="empty">No solves yet.</div>
             {% endif %}
-            <a class="link-arrow" href="{% url 'leaderboard' %}">See the full leaderboard</a>
+            <a href="{% url 'leaderboard' %}">Full leaderboard</a>
         </div>
-    </div>
-</section>
-
-<section class="page section">
-    <div class="section-head"><h2>Built for the daily habit</h2></div>
-    <div class="feature-list">
-        <div><h4>Teams of up to five</h4><p>Share one entry, chat while you work, and write private problems for each other.</p></div>
-        <div><h4>Streaks you can save</h4><p>Missed a day? Solve yesterday's problem today, or let a streak freeze cover it.</p></div>
-        <div><h4>Hints that cost a little</h4><p>The first hint is free. Each one after that takes three points off your score.</p></div>
-        <div><h4>Your own editor</h4><p>Code in the browser, or pull and submit from VS Code or the command line.</p></div>
-        <div><h4>Python and JavaScript</h4><p>Pick your language per problem. Leaderboards filter by language too.</p></div>
-        <div><h4>Fair play</h4><p>Solutions stay hidden until the deadline, and copied code gets flagged.</p></div>
     </div>
 </section>
 {% endblock %}

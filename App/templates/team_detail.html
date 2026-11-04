@@ -51,7 +51,7 @@
                     <li><a href="{{ c.get_absolute_url }}">{{ c.title }}</a> <span class="pill pill-{{ c.difficulty }}">{{ c.get_difficulty_display }}</span> <span class="muted small">{{ c.release_date|date:"M j" }}{% if c.release_date > today %} (upcoming){% elif c.is_open %} (open now){% endif %}</span></li>
                     {% endfor %}
                 </ul>
-                {% else %}<div class="empty">Write a problem for your teammates. It gets its own private leaderboard.</div>{% endif %}
+                {% else %}<div class="empty">None yet.</div>{% endif %}
             </div>
             {% endif %}
 
@@ -65,7 +65,7 @@
                     {% endfor %}
                     </tbody>
                 </table>
-                {% else %}<div class="empty">No team solves yet. Choose "With your team" when you start a problem.</div>{% endif %}
+                {% else %}<div class="empty">No team solves yet.</div>{% endif %}
             </div>
         </div>
 
@@ -115,7 +115,7 @@
             </form>
             {% else %}
             <div class="r-card">
-                <p class="muted">You're viewing {{ team.name }} from the outside. Ask a member for an invite link to join.</p>
+                <p class="muted">Ask a member for an invite.</p>
             </div>
             {% endif %}
         </div>

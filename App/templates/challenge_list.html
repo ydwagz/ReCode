@@ -6,7 +6,7 @@
     <div class="page-head">
         <div>
             <h1>Problems</h1>
-            <p class="muted mb-0">Only today's problem is ranked. Past problems are open for practice, and their shared solutions are visible.</p>
+            <p class="muted mb-0">Only today's is ranked. The rest are practice.</p>
         </div>
         <form class="filter-bar" method="get">
             <select name="difficulty" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Difficulty">
@@ -29,7 +29,7 @@
                 <td><span class="pill pill-{{ c.difficulty }}">{{ c.get_difficulty_display }}</span></td>
                 <td class="num">{{ c.solvers }}</td>
                 <td>{% if e.solved %}<span class="ok">{{ e.score|floatformat:1 }}</span>{% if e.is_practice %} <span class="muted small">practice</span>{% endif %}{% elif e %}<span class="muted">Not solved</span>{% else %}<span class="muted">—</span>{% endif %}</td>
-                <td class="text-end">{% if c.is_closed %}<a class="small" href="{% url 'solutions' c.slug %}">Shared solutions</a>{% endif %}</td>
+                <td class="text-end">{% if c.is_closed %}<a class="small" href="{% url 'solutions' c.slug %}">Solutions</a>{% endif %}</td>
             </tr>
             {% endwith %}
             {% empty %}

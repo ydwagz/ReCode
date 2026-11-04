@@ -8,7 +8,7 @@
         <div>
             <span class="eyebrow">Discussion</span>
             <h1>{{ challenge.title }}</h1>
-            {% if not challenge.is_closed %}<p class="muted mb-0">The challenge is live — keep full solutions out of here until it closes.</p>{% endif %}
+            {% if not challenge.is_closed %}<p class="muted mb-0">Live problem. No full solutions yet.</p>{% endif %}
         </div>
     </div>
 
@@ -52,7 +52,7 @@
             </div>
         </article>
     {% empty %}
-        <div class="empty">No comments yet. Start the conversation.</div>
+        <div class="empty">No comments yet.</div>
     {% endfor %}
     </div>
 </div>

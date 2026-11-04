@@ -5,6 +5,7 @@ from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
+from .. import verification
 from ..forms import RegisterForm
 
 
@@ -22,8 +23,8 @@ def register(request):
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
-        messages.success(request, f"Welcome to ReCode, {user.username}! Today's challenge is waiting.")
-        return redirect("dashboard")
+        verification.send_code(user)
+        return redirect("verify_email")
     return render(request, "register.html", {"form": form})
 
 

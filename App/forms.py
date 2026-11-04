@@ -12,15 +12,28 @@ User = get_user_model()
 
 
 class RegisterForm(UserCreationForm):
-    email = forms.EmailField(required=False)
+    email = forms.EmailField()
 
     class Meta(UserCreationForm.Meta):
         model = User
         fields = ("username", "email")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, field in self.fields.items():
+            field.help_text = ""
+        self.fields["email"].help_text = "We'll send you a code."
+        self.fields["password2"].label = "Confirm password"
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip()
+        if User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError("That email is already in use.")
+        return email
+
 
 class AccountForm(forms.ModelForm):
-    email = forms.EmailField(required=False)
+    email = forms.EmailField(help_text="Changing it needs a new code.")
 
     class Meta:
         model = Profile
@@ -30,10 +43,21 @@ class AccountForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["email"].initial = self.instance.user.email
 
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip()
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.user_id).exists():
+            raise forms.ValidationError("That email is already in use.")
+        return email
+
     def save(self, commit=True):
-        profile = super().save(commit)
-        profile.user.email = self.cleaned_data["email"]
-        profile.user.save(update_fields=["email"])
+        profile = super().save(commit=False)
+        user = profile.user
+        if user.email.lower() != self.cleaned_data["email"].lower():
+            user.email = self.cleaned_data["email"]
+            user.save(update_fields=["email"])
+            profile.email_verified = False  # a new address has to be confirmed again
+        if commit:
+            profile.save()
         return profile
 
 

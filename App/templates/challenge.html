@@ -23,9 +23,9 @@
                 {% if challenge.is_open %}
                     Closes in <span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}" data-done-text="closed, refresh the page">--:--:--</span>
                 {% elif recoverable %}
-                    This problem has closed. Solve it today to <strong>recover your streak</strong>. The score counts as practice.
+                    Closed. Solve today to <strong>recover your streak</strong>.
                 {% else %}
-                    This problem has closed. You can still solve it for practice; it won't be ranked.
+                    Closed. Practice only.
                 {% endif %}
             </div>
         </div>
@@ -52,15 +52,15 @@
             <h4 class="section-label">Constraints</h4>
             <pre class="constraints">{{ challenge.constraints }}</pre>
             {% endif %}
-            <p class="muted small mt-3">Hidden tests (including a large performance input) run when you submit.</p>
+            <p class="muted small mt-3">Submitting also runs hidden tests.</p>
             <div class="d-flex gap-3 mt-3 flex-wrap">
                 <a class="link-arrow" id="discussion" href="{% url 'challenge_discussion' challenge.slug %}">Discussion ({{ comment_count }})</a>
-                <a class="link-arrow" href="{% url 'solutions' challenge.slug %}">Shared solutions{% if not challenge.is_closed %} (open after the deadline){% endif %}</a>
+                <a class="link-arrow" href="{% url 'solutions' challenge.slug %}">Solutions{% if not challenge.is_closed %} (after close){% endif %}</a>
             </div>
         </div>
 
         <div class="tab-panel" id="tab-hints">
-            <p class="muted small">Hints are progressive. The first one is free; the rest cost points from your final score.</p>
+            <p class="muted small">First hint free. The rest cost 3 points.</p>
             <ol class="hint-list" id="hint-list">
                 {% for h in hints %}<li><div>{{ h.text|simple_md }}</div>{% if h.cost %}<span class="muted small">−{{ h.cost }} points</span>{% else %}<span class="muted small">free</span>{% endif %}</li>{% endfor %}
             </ol>
@@ -122,20 +122,20 @@
             </div>
         {% elif not entry %}
             <div class="r-card start-card">
-                <h3>How do you want to play?</h3>
-                <p class="muted">Your speed clock starts as soon as you choose.</p>
+                <h3>Play</h3>
+                <p class="muted">Your clock starts now.</p>
                 <form method="post" action="{% url 'challenge_start' challenge.slug %}" class="start-options">
                     {% csrf_token %}
                     <button class="mode-option" name="mode" value="solo">
-                        <strong>Solo</strong><span class="muted small">Ranked under your name</span>
+                        <strong>Solo</strong><span class="muted small">Ranked as you</span>
                     </button>
                     {% if team %}
                     <button class="mode-option" name="mode" value="team">
-                        <strong>With {{ team.name }}</strong><span class="muted small">One shared entry for your team</span>
+                        <strong>With {{ team.name }}</strong><span class="muted small">Shared entry</span>
                     </button>
                     {% else %}
                     <a class="mode-option disabled" href="{% url 'teams' %}">
-                        <strong>With a team</strong><span class="muted small">Create or join a team first</span>
+                        <strong>With a team</strong><span class="muted small">Join a team first</span>
                     </a>
                     {% endif %}
                 </form>
@@ -149,15 +149,16 @@
                     <button class="btn-r btn-r-sm btn-r-ghost" id="reset-btn" title="Reset to starter code">Reset</button>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <span class="muted small">{% if entry.team %}Playing with {{ entry.team.name }}{% else %}Playing solo{% endif %}, started at {{ entry.started_at|date:"H:i" }} UTC</span>
+                    <span class="muted small">{% if entry.team %}{{ entry.team.name }}{% else %}Solo{% endif %}, started {{ entry.started_at|date:"H:i" }} UTC</span>
                 </div>
             </div>
             <textarea id="code"></textarea>
+            <span hidden id="test-counts" data-examples="{{ examples|length }}" data-total="{{ test_count }}"></span>
             <div class="editor-actions">
                 <span class="muted small" id="attempts-label">{{ entry.failed_attempts }} failed attempt{{ entry.failed_attempts|pluralize }}</span>
                 <div class="d-flex gap-2">
                     <button class="btn-r btn-r-ghost" id="run-btn" title="Ctrl/⌘ + '">Run examples</button>
-                    <button class="btn-r btn-r-primary" id="submit-btn" title="Ctrl/⌘ + Enter" {% if entry.solved %}disabled{% endif %}>{% if entry.solved %}Solved{% else %}Submit solution{% endif %}</button>
+                    <button class="btn-r btn-r-primary" id="submit-btn" title="Ctrl/⌘ + Enter" {% if entry.solved %}disabled{% endif %}>{% if entry.solved %}Solved{% else %}Submit{% endif %}</button>
                 </div>
             </div>
 
@@ -168,9 +169,9 @@
                     <div class="muted small pb-1">Solved in {{ entry.solve_seconds|duration }}{% if entry.is_practice %}, practice{% endif %}</div>
                 </div>
                 {% include '_score_tiles.html' %}
-                <p class="muted small mt-3 mb-0">You can share your solution from the Submissions tab. Shared solutions appear after the deadline.</p>
+                <p class="muted small mt-3 mb-0">Share it from Submissions.</p>
                 {% else %}
-                <div class="muted">Running the examples is free. A failed submission costs attempt points, so run first.</div>
+                <div class="muted">Runs are free. Failed submits cost points.</div>
                 {% endif %}
             </div>
 
@@ -262,6 +263,10 @@
   });
 
   const consoleEl = document.getElementById("console");
+  const counts = document.getElementById("test-counts");
+  // While judging, one rippling tile per test that is about to run.
+  const pending = (n, text) => "<div class='muted small mb-2'>" + text + "</div><ol class='case-list' aria-hidden='true'>" +
+    Array.from({ length: n }, (_, i) => "<li><span class='case-chip pending' style='--i:" + i + "'>" + (i + 1) + "</span></li>").join("") + "</ol>";
   const runBtn = document.getElementById("run-btn");
   const submitBtn = document.getElementById("submit-btn");
 
@@ -271,11 +276,16 @@
     const labels = { accepted: "All tests passed", wrong: "Some tests failed", error: "Your code raised an error", timeout: "Too slow: time limit exceeded" };
     let html = "<div class='result-head " + (r.status === "accepted" ? "ok" : "bad") + "'>" + labels[r.status] + "</div>" +
       (r.total ? "<div class='muted small mb-2'>" + title + ": " + r.passed + " of " + r.total + " tests passed in " + r.runtime_ms + " ms</div>" : "");
+    if (r.status === "timeout") {
+      const n = Number(counts.dataset[title === "Run" ? "examples" : "total"]) || 1;
+      html += "<ol class='case-list' aria-label='Test results'>" + Array.from({ length: n }, (_, i) =>
+        "<li><span class='case-chip reveal timeout' style='--i:" + i + "' title='Timed out'>" + (i + 1) + "</span></li>").join("") + "</ol>";
+    }
     if (r.error) html += "<pre class='console-error'>" + escapeHTML(r.error) + "</pre>";
     if (r.cases && r.cases.length) {
       // One tile per test, Wordle style; details only for the ones that need attention.
       html += "<ol class='case-list' aria-label='Test results'>" + r.cases.map((c, i) =>
-        "<li><span class='case-chip " + (c.passed ? "pass" : "fail") + "' title='Test " + (i + 1) + (c.passed ? " passed" : " failed") + "'>" + (i + 1) + "</span></li>"
+        "<li><span class='case-chip reveal " + (c.passed ? "pass" : "fail") + "' style='--i:" + i + "' title='Test " + (i + 1) + (c.passed ? " passed" : " failed") + "'>" + (i + 1) + "</span></li>"
       ).join("") + "</ol>";
       const details = r.cases.map((c, i) => {
         if (c.passed && !c.stdout) return "";
@@ -294,7 +304,7 @@
       html += "<div class='d-flex align-items-end gap-3 my-3'><div class='score-total'>" + res.entry.score.toFixed(1) + "<span>/100</span></div>" +
         "<div class='muted small pb-1'>Solved in " + fmtDuration(res.entry.solve_seconds) + (res.entry.practice ? ", practice" : "") + "</div></div>" +
         ReCode.scoreTiles(b) + (b.hint_penalty ? "<div class='score-penalty'>−" + b.hint_penalty + " for hints</div>" : "") +
-        "<p class='muted small mt-3'>Refresh the page to share your solution.</p>";
+        "<p class='muted small mt-3'>Refresh to share it.</p>";
       submitBtn.disabled = true; submitBtn.textContent = "Solved";
     } else if (res.entry) {
       document.getElementById("attempts-label").textContent = res.entry.failed_attempts + " failed attempt" + (res.entry.failed_attempts === 1 ? "" : "s");
@@ -312,14 +322,14 @@
 
   function run() {
     return withBusy(runBtn, "Running…", async () => {
-      consoleEl.innerHTML = "<div class='muted'>Running examples…</div>";
+      consoleEl.innerHTML = pending(Number(counts.dataset.examples), "Running examples…");
       renderResult(await postJSON(base + "run/", { code: editor.getValue(), language: langSelect.value }), "Run");
     });
   }
 
   function submit() {
     return withBusy(submitBtn, "Judging…", async () => {
-      consoleEl.innerHTML = "<div class='muted'>Running all tests…</div>";
+      consoleEl.innerHTML = pending(Number(counts.dataset.total), "Running all tests…");
       renderResult(await postJSON(base + "submit/", { code: editor.getValue(), language: langSelect.value }), "Submit");
       refreshProgress();
     });

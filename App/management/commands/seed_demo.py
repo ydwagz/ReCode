@@ -61,6 +61,7 @@ class Command(BaseCommand):
                 user.save()
                 user.profile.display_name = name.capitalize()
                 user.profile.default_language = rng.choice(["python", "python", "javascript"])
+                user.profile.email_verified = True
                 user.profile.save()
             users[name] = user
 

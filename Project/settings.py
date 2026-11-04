@@ -48,6 +48,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'App.middleware.EmailVerificationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -136,11 +137,28 @@ CACHES = {
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
-MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-    },
-}
+# In development verification codes are printed in the runserver console.
+# Set RECODE_EMAIL_HOST (+ _PORT, _USER, _PASSWORD) to send real email over SMTP.
+if os.environ.get('RECODE_EMAIL_HOST'):
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
+            'OPTIONS': {
+                'host': os.environ['RECODE_EMAIL_HOST'],
+                'port': int(os.environ.get('RECODE_EMAIL_PORT', '587')),
+                'username': os.environ.get('RECODE_EMAIL_USER', ''),
+                'password': os.environ.get('RECODE_EMAIL_PASSWORD', ''),
+                'use_tls': os.environ.get('RECODE_EMAIL_TLS', '1') == '1',
+            },
+        },
+    }
+else:
+    MAILERS = {
+        'default': {
+            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        },
+    }
+DEFAULT_FROM_EMAIL = os.environ.get('RECODE_EMAIL_FROM', 'ReCode <no-reply@recode.local>')
 
 LOGGING = {
     'version': 1,

@@ -26,6 +26,8 @@ def token_required(view):
             profile = Profile.objects.select_related("user").filter(api_token=token.strip()).first()
         if not profile or not profile.user.is_active:
             return json_error("Invalid or missing API token. Generate one in Settings → Integrations.", status=401)
+        if not profile.email_verified:
+            return json_error("Verify your email on the website first.", status=403)
         request.user = profile.user
         return view(request, *args, **kwargs)
 

@@ -21,6 +21,14 @@ def two_sum(nums, target):
 BAD_TWO_SUM = "def two_sum(nums, target):\n    return [0, 1]\n"
 
 
+def make_user(*args, **kwargs):
+    """A user who has already confirmed their email."""
+    user = User.objects.create_user(*args, **kwargs)
+    user.profile.email_verified = True
+    user.profile.save(update_fields=["email_verified"])
+    return user
+
+
 def make_two_sum(day=None, **extra):
     from .problem_bank import PROBLEMS
 
@@ -129,7 +137,7 @@ class RunnerTests(TestCase):
 
 class StreakTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("streaker", password="pw-123456!")
+        self.user = make_user("streaker", password="pw-123456!")
         self.today = utc_today()
 
     def day(self, n):
@@ -174,7 +182,7 @@ class StreakTests(TestCase):
 @override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}})
 class SubmissionFlowTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("alice", password="pw-123456!")
+        self.user = make_user("alice", password="pw-123456!")
         self.challenge = make_two_sum()
 
     def test_expected_outputs_come_from_reference(self):
@@ -227,7 +235,7 @@ class SubmissionFlowTests(TestCase):
     def test_web_endpoints(self):
         self.client.login(username="alice", password="pw-123456!")
         url = self.challenge.get_absolute_url()
-        self.assertContains(self.client.get(url), "How do you want to play?")
+        self.assertContains(self.client.get(url), "Your clock starts now.")
         self.client.post(url + "start/", {"mode": "solo"})
         run = self.client.post(url + "run/", json.dumps({"code": GOOD_TWO_SUM, "language": "python"}), content_type="application/json").json()
         self.assertEqual(run["result"]["status"], "accepted")
@@ -243,7 +251,7 @@ class SubmissionFlowTests(TestCase):
 @override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}})
 class TeamTests(TestCase):
     def setUp(self):
-        self.users = [User.objects.create_user(f"u{i}", password="pw-123456!") for i in range(6)]
+        self.users = [make_user(f"u{i}", password="pw-123456!") for i in range(6)]
         self.team = Team.objects.create(name="Null Pointers", owner=self.users[0])
         TeamMembership.objects.create(team=self.team, user=self.users[0])
 
@@ -311,8 +319,8 @@ def two_sum(nums, target):
 
     @override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}})
     def test_copied_submission_is_flagged(self):
-        a = User.objects.create_user("a", password="x")
-        b = User.objects.create_user("b", password="x")
+        a = make_user("a", password="x")
+        b = make_user("b", password="x")
         challenge = make_two_sum()
         services.submit(a, challenge, GOOD_TWO_SUM, "python")
         sub, _, _ = services.submit(b, challenge, GOOD_TWO_SUM.replace("seen", "memo"), "python")
@@ -323,7 +331,7 @@ def two_sum(nums, target):
 @override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.dummy.DummyCache"}})
 class ApiTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user("bob", password="pw-123456!")
+        self.user = make_user("bob", password="pw-123456!")
         self.challenge = make_two_sum()
         self.auth = {"HTTP_AUTHORIZATION": f"Token {self.user.profile.api_token}"}
 
@@ -346,16 +354,97 @@ class PageTests(TestCase):
             self.assertEqual(self.client.get(url).status_code, 200, url)
 
     def test_register_creates_profile_and_logs_in(self):
-        response = self.client.post("/register/", {"username": "newbie", "email": "", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
-        self.assertRedirects(response, "/dashboard/")
-        self.assertEqual(self.client.get("/dashboard/").status_code, 200)
+        response = self.client.post("/register/", {"username": "newbie", "email": "new@example.com", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
+        self.assertRedirects(response, "/verify/")
         self.assertTrue(User.objects.get(username="newbie").profile.api_token)
 
     def test_private_profile_hidden(self):
-        user = User.objects.create_user("shy", password="x")
+        user = make_user("shy", password="x")
         user.profile.public_profile = False
         user.profile.save()
         self.assertEqual(self.client.get("/u/shy/").status_code, 404)
 
     def setUp(self):
         cache.clear()
+
+
+class EmailVerificationTests(TestCase):
+    def setUp(self):
+        from django.core import mail
+
+        self.mail = mail
+        self.client.post("/register/", {"username": "vera", "email": "vera@example.com",
+                                        "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
+        self.user = User.objects.get(username="vera")
+
+    def code(self):
+        import re
+
+        return re.search(r"\b(\d{6})\b", self.mail.outbox[-1].body).group(1)
+
+    def post_code(self, code):
+        return self.client.post("/verify/", json.dumps({"code": code}), content_type="application/json").json()
+
+    def test_registration_sends_code_and_gates_the_site(self):
+        self.assertEqual(len(self.mail.outbox), 1)
+        self.assertEqual(self.mail.outbox[0].to, ["vera@example.com"])
+        self.assertRedirects(self.client.get("/dashboard/"), "/verify/")
+        self.assertContains(self.client.get("/verify/"), "ve••@example.com")
+
+    def test_correct_code_verifies(self):
+        result = self.post_code(self.code())
+        self.assertEqual(result["state"], "verified")
+        self.user.profile.refresh_from_db()
+        self.assertTrue(self.user.profile.email_verified)
+        self.assertEqual(self.client.get("/dashboard/").status_code, 200)
+
+    def test_wrong_code_counts_attempts_then_locks(self):
+        good = self.code()
+        bad = "000000" if good != "000000" else "111111"
+        states = [self.post_code(bad)["state"] for _ in range(5)]
+        self.assertEqual(states, ["wrong"] * 4 + ["locked"])
+        self.assertEqual(self.post_code(good)["state"], "locked")
+
+    def test_expired_code(self):
+        from .models import EmailCode
+
+        EmailCode.objects.update(created_at=timezone.now() - EmailCode.TTL - timedelta(seconds=1))
+        self.assertEqual(self.post_code(self.code())["state"], "expired")
+
+    def test_resend_has_cooldown_and_invalidates_old_code(self):
+        old = self.code()
+        self.client.post("/verify/resend/")
+        self.assertEqual(len(self.mail.outbox), 1)  # still cooling down
+        from .models import EmailCode
+
+        EmailCode.objects.update(created_at=timezone.now() - EmailCode.RESEND_COOLDOWN)
+        self.client.post("/verify/resend/")
+        self.assertEqual(len(self.mail.outbox), 2)
+        new = self.code()
+        if new != old:
+            self.assertEqual(self.post_code(old)["state"], "wrong")
+        self.assertEqual(self.post_code(new)["state"], "verified")
+
+    def test_codes_are_not_stored_in_plain_text(self):
+        from .models import EmailCode
+
+        self.assertNotIn(self.code(), EmailCode.objects.get().code_hash)
+
+    def test_api_rejects_unverified(self):
+        response = self.client.get("/api/v1/me/", HTTP_AUTHORIZATION=f"Token {self.user.profile.api_token}")
+        self.assertEqual(response.status_code, 403)
+
+    def test_duplicate_email_rejected(self):
+        self.client.logout()
+        response = self.client.post("/register/", {"username": "copy", "email": "VERA@example.com",
+                                                   "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
+        self.assertContains(response, "already in use")
+
+    def test_changing_email_requires_new_verification(self):
+        self.post_code(self.code())
+        self.client.post("/settings/", {"section": "account", "account-email": "new@example.com",
+                                        "account-display_name": "", "account-bio": ""})
+        self.user.profile.refresh_from_db()
+        self.assertFalse(self.user.profile.email_verified)
+        self.assertEqual(self.mail.outbox[-1].to, ["new@example.com"])
+        self.assertRedirects(self.client.get("/dashboard/"), "/verify/")

@@ -9,8 +9,8 @@
             <h1>{{ periods|get_item:period }}</h1>
             <p class="muted mb-0">
                 {% if period == 'daily' %}<a href="{{ challenge.get_absolute_url }}">{{ challenge.title }}</a> closes in <span data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
-                {% elif period == 'weekly' %}Sum of scores since Monday (UTC).
-                {% else %}Every ranked solve, ever.{% endif %}
+                {% elif period == 'weekly' %}Since Monday.
+                {% else %}Every ranked solve.{% endif %}
             </p>
         </div>
         {% if me %}
@@ -59,7 +59,7 @@
             </tbody>
         </table>
     </div>
-    <p class="muted small mt-2">Ranked by total score, then by total solve time. Practice solves (after the deadline) aren't ranked. <span id="lb-updated"></span></p>
+    <p class="muted small mt-2">Score first, then time. <span id="lb-updated"></span></p>
 </div>
 {% endblock %}
 {% block extra_js %}

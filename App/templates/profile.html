@@ -59,7 +59,7 @@
                     <summary>{{ s.participation.challenge.title }} <span class="pill">{{ s.language|lang_label }}</span> <span class="muted small">{{ s.created_at|date:"M j" }}{% if s.shared %}, shared{% endif %}</span></summary>
                     <pre class="md-pre"><code>{{ s.code }}</code></pre>
                 </details>
-                {% empty %}<div class="empty">{% if is_me %}Your accepted solutions will be listed here.{% else %}Nothing to show yet.{% endif %}</div>{% endfor %}
+                {% empty %}<div class="empty">{% if is_me %}None yet.{% else %}None yet.{% endif %}</div>{% endfor %}
             </div>
         </div>
 

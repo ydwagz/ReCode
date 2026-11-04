@@ -5,7 +5,7 @@
     <div class="r-card auth-card">
         <div class="tile-row auth-tiles" aria-hidden="true"><span class="tile ok">R</span><span class="tile ok">E</span><span class="tile mid">C</span><span class="tile">O</span><span class="tile">D</span><span class="tile">E</span></div>
         <h1>Join ReCode</h1>
-        <p class="muted">One problem a day. Keep the streak alive.</p>
+        
         <form method="post" novalidate>
             {% csrf_token %}
             {% for error in form.non_field_errors %}<div class="flash flash-error">{{ error }}</div>{% endfor %}

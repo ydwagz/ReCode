@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}Verify email{% endblock %}
+{% block content %}
+<section class="auth-wrap">
+    <div class="auth-card verify-card">
+        <h1>Check your email</h1>
+        <p class="muted">Enter the code sent to <strong>{{ masked }}</strong>.</p>
+
+        <form method="post" class="otp" id="otp-form" data-length="{{ length }}" novalidate>
+            {% csrf_token %}
+            <label class="visually-hidden" for="otp-input">Verification code</label>
+            <input id="otp-input" name="code" class="otp-input form-control" inputmode="numeric" pattern="[0-9]*"
+                   autocomplete="one-time-code" maxlength="{{ length }}" autofocus required>
+            <div class="otp-tiles" aria-hidden="true">
+                {% for i in digits %}<span class="otp-tile" data-state="empty"><span class="glyph"></span></span>{% endfor %}
+            </div>
+            <p class="otp-status" id="otp-status" role="status" aria-live="polite"></p>
+            <button class="btn-r btn-r-primary w-100 otp-fallback" type="submit">Verify</button>
+        </form>
+
+        <div class="verify-actions">
+            <form method="post" action="{% url 'verify_resend' %}">
+                {% csrf_token %}
+                <button class="link-btn" id="resend-btn" type="submit" data-wait="{{ wait }}">Resend code</button>
+            </form>
+            <details class="change-email">
+                <summary class="link-btn">Change email</summary>
+                <form method="post" action="{% url 'verify_change_email' %}" class="d-flex gap-2 mt-2">
+                    {% csrf_token %}
+                    <input type="email" name="email" class="form-control" value="{{ email_form.email.value }}" required aria-label="New email">
+                    <button class="btn-r btn-r-ghost">Send</button>
+                </form>
+            </details>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const form = document.getElementById("otp-form");
+  const input = document.getElementById("otp-input");
+  const tiles = [...form.querySelectorAll(".otp-tile")];
+  const status = document.getElementById("otp-status");
+  const length = Number(form.dataset.length);
+  let busy = false;
+
+  form.classList.add("is-enhanced");
+
+  // Status line "writes" itself out, one character at a time.
+  let typing;
+  function say(text, tone) {
+    clearInterval(typing);
+    status.dataset.tone = tone || "";
+    status.textContent = "";
+    if (!text) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { status.textContent = text; return; }
+    let i = 0;
+    typing = setInterval(() => {
+      status.textContent = text.slice(0, ++i);
+      if (i >= text.length) clearInterval(typing);
+    }, 22);
+  }
+
+  function setRow(state) { form.dataset.state = state; }
+
+  function render() {
+    const value = input.value;
+    tiles.forEach((tile, i) => {
+      const glyph = tile.querySelector(".glyph");
+      const ch = value[i] || "";
+      if (glyph.textContent !== ch) {
+        glyph.textContent = ch;
+        if (ch) { tile.dataset.state = "filled"; tile.classList.remove("write"); void tile.offsetWidth; tile.classList.add("write"); }
+      }
+      if (!ch) tile.dataset.state = (i === value.length && document.activeElement === input) ? "active" : "empty";
+    });
+  }
+
+  async function submit() {
+    if (busy) return;
+    busy = true;
+    input.blur();
+    setRow("checking");
+    say("Checking…");
+    let res;
+    try {
+      const r = await fetch(location.pathname, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": ReCode.getCookie("csrftoken") },
+        body: JSON.stringify({ code: input.value }),
+      });
+      res = await r.json();
+    } catch (e) {
+      res = { ok: false, state: "error", message: "Couldn't reach the server. Try again." };
+    }
+    if (res.ok) {
+      setRow("verified");
+      say("Verified.", "ok");
+      setTimeout(() => (location.href = res.next), 1200);
+      return;
+    }
+    setRow(res.state === "wrong" ? "wrong" : "expired");
+    say(res.message + (res.state === "wrong" && res.attempts_left ? " " + res.attempts_left + " left." : ""), "bad");
+    setTimeout(() => {
+      busy = false;
+      if (res.state === "wrong" || res.state === "error") {
+        input.value = "";
+        setRow("");
+        render();
+        input.focus();
+      }
+    }, 650);
+  }
+
+  input.addEventListener("input", () => {
+    if (busy) return;
+    input.value = input.value.replace(/\D/g, "").slice(0, length);
+    if (form.dataset.state && form.dataset.state !== "checking") setRow("");
+    render();
+    if (input.value.length === length) submit();  // auto submit on the last digit
+  });
+  input.addEventListener("focus", render);
+  input.addEventListener("blur", render);
+  form.addEventListener("submit", (e) => { e.preventDefault(); if (input.value.length === length) submit(); });
+  render();
+
+  // Resend cooldown
+  const resend = document.getElementById("resend-btn");
+  let wait = Number(resend.dataset.wait);
+  function tick() {
+    if (wait > 0) { resend.disabled = true; resend.textContent = "Resend in " + wait + "s"; wait--; setTimeout(tick, 1000); }
+    else { resend.disabled = false; resend.textContent = "Resend code"; }
+  }
+  tick();
+})();
+</script>
+{% endblock %}

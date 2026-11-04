@@ -6,7 +6,7 @@
     <div class="page-head">
         <div>
             <h1>Community</h1>
-            <p class="muted mb-0">Who's solving what, what people are saying, and shared solutions for problems that have closed.</p>
+            <p class="muted mb-0">Solves, comments and solutions.</p>
         </div>
         <a class="btn-r btn-r-primary" href="{% url 'challenge_discussion' challenge.slug %}">Discuss today's challenge</a>
     </div>
@@ -37,7 +37,7 @@
                         {% endif %}
                     </li>
                 {% empty %}
-                    <li class="empty">Nothing yet today. Solve the problem and you'll be first here.</li>
+                    <li class="empty">Nothing yet today.</li>
                 {% endfor %}
                 </ul>
             </div>
