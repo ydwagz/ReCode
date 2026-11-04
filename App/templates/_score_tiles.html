@@ -1,0 +1,6 @@
+{% load recode %}<div class="score-tiles">
+    {% for p in entry|score_parts %}
+    <div class="score-tile {{ p.state }}" style="--fill: {{ p.pct }}%"><span class="value">{{ p.value|floatformat:"-1" }}<small>/{{ p.max }}</small></span><span class="label">{{ p.label }}</span></div>
+    {% endfor %}
+</div>
+{% if entry.hint_penalty %}<div class="score-penalty">−{{ entry.hint_penalty|floatformat:0 }} for hints</div>{% endif %}

@@ -86,6 +86,40 @@ class RunnerTests(TestCase):
         self.assertFalse(runner.values_equal(True, 1))
         self.assertTrue(runner.values_equal([[1, 2]], [[1, 2]]))
 
+    def test_works_where_preexec_fn_is_unsupported(self):
+        """Windows: subprocess raises ValueError for preexec_fn — this used to cause HTTP 500 on submit."""
+        real_run = runner.subprocess.run
+
+        def windows_run(*args, **kwargs):
+            if kwargs.get("preexec_fn"):
+                raise ValueError("preexec_fn is not supported on Windows platforms")
+            return real_run(*args, **kwargs)
+
+        with mock.patch.object(runner, "IS_POSIX", False), mock.patch.object(runner.subprocess, "run", windows_run):
+            raw = runner.execute("python", "def f():\n    return 7\n", "f", [{"args": []}])
+        self.assertEqual(raw["results"][0]["value"], 7)
+
+    def test_works_when_a_resource_limit_is_rejected(self):
+        """macOS rejects RLIMIT_AS — this used to cause HTTP 500 on submit."""
+        import resource
+
+        real_set = resource.setrlimit
+
+        def mac_setrlimit(which, limits):
+            if which == resource.RLIMIT_AS:
+                raise ValueError("current limit exceeds maximum limit")
+            return real_set(which, limits)
+
+        with mock.patch("resource.setrlimit", mac_setrlimit):
+            raw = runner.execute("python", "def f():\n    return 7\n", "f", [{"args": []}])
+        self.assertEqual(raw["results"][0]["value"], 7)
+
+    def test_harness_runs_without_resource_module(self):
+        """Windows has no `resource` module; the harness must still report results."""
+        code = "import sys\nsys.modules['resource'] = None\ndef f():\n    return 7\n"
+        raw = runner.execute("python", code, "f", [{"args": []}])
+        self.assertEqual(raw["results"][0]["value"], 7)
+
     def test_javascript(self):
         if "javascript" not in runner.available_languages():
             self.skipTest("node not installed")
@@ -182,10 +216,18 @@ class SubmissionFlowTests(TestCase):
         with self.assertRaises(services.ChallengeError):
             services.submit(self.user, future, GOOD_TWO_SUM, "python")
 
+    def test_unexpected_judge_crash_returns_json_not_html_500(self):
+        self.client.login(username="alice", password="pw-123456!")
+        url = self.challenge.get_absolute_url() + "submit/"
+        with mock.patch.object(services.runner, "run_tests", side_effect=RuntimeError("boom")), self.assertLogs("recode", "ERROR"):
+            response = self.client.post(url, json.dumps({"code": GOOD_TWO_SUM, "language": "python"}), content_type="application/json")
+        self.assertEqual(response.status_code, 500)
+        self.assertIn("boom", response.json()["error"])
+
     def test_web_endpoints(self):
         self.client.login(username="alice", password="pw-123456!")
         url = self.challenge.get_absolute_url()
-        self.assertContains(self.client.get(url), "Ready?")
+        self.assertContains(self.client.get(url), "How do you want to play?")
         self.client.post(url + "start/", {"mode": "solo"})
         run = self.client.post(url + "run/", json.dumps({"code": GOOD_TWO_SUM, "language": "python"}), content_type="application/json").json()
         self.assertEqual(run["result"]["status"], "accepted")

@@ -5,9 +5,8 @@
 <div class="page">
     <div class="page-head">
         <div>
-            <span class="eyebrow">Archive</span>
-            <h1>Challenges</h1>
-            <p class="muted mb-0">Today's challenge is ranked. Past ones are open for practice — and their solution galleries are unlocked.</p>
+            <h1>Problems</h1>
+            <p class="muted mb-0">Only today's problem is ranked. Past problems are open for practice, and their shared solutions are visible.</p>
         </div>
         <form class="filter-bar" method="get">
             <select name="difficulty" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Difficulty">
@@ -20,17 +19,17 @@
     </div>
     <div class="r-card p-0">
         <table class="r-table">
-            <thead><tr><th>Date</th><th>Challenge</th><th>Difficulty</th><th class="num">Solvers</th><th>You</th><th></th></tr></thead>
+            <thead><tr><th>Date</th><th>Problem</th><th>Difficulty</th><th class="num">Solved by</th><th>Your score</th><th></th></tr></thead>
             <tbody>
             {% for row in rows %}
             {% with c=row.challenge e=row.entry %}
             <tr class="{% if c.release_date == today %}row-highlight{% endif %}">
-                <td class="muted">{{ c.release_date|date:"M j" }}{% if c.release_date == today %} <span class="pill pill-live">live</span>{% endif %}</td>
+                <td class="muted">{{ c.release_date|date:"M j" }}{% if c.release_date == today %} <span class="pill pill-live">Today</span>{% endif %}</td>
                 <td><a href="{{ c.get_absolute_url }}">{{ c.title }}</a></td>
                 <td><span class="pill pill-{{ c.difficulty }}">{{ c.get_difficulty_display }}</span></td>
                 <td class="num">{{ c.solvers }}</td>
-                <td>{% if e.solved %}<span class="ok">✓ {{ e.score|floatformat:1 }}</span>{% if e.is_practice %} <span class="muted small">practice</span>{% endif %}{% elif e %}<span class="muted">attempted</span>{% else %}<span class="muted">—</span>{% endif %}</td>
-                <td class="text-end">{% if c.is_closed %}<a class="small" href="{% url 'solutions' c.slug %}">Solutions</a>{% endif %}</td>
+                <td>{% if e.solved %}<span class="ok">{{ e.score|floatformat:1 }}</span>{% if e.is_practice %} <span class="muted small">practice</span>{% endif %}{% elif e %}<span class="muted">Not solved</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+                <td class="text-end">{% if c.is_closed %}<a class="small" href="{% url 'solutions' c.slug %}">Shared solutions</a>{% endif %}</td>
             </tr>
             {% endwith %}
             {% empty %}

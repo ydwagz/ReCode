@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from .. import runner, services
 from ..forms import CommentForm
 from ..models import Challenge, Comment, CommentVote, Participation, SolutionLike, Submission, utc_today
-from .helpers import json_body, json_error, safe_next, serialize_entry, serialize_run
+from .helpers import json_body, json_error, json_errors, safe_next, serialize_entry, serialize_run
 
 
 def _visible_challenge(request, slug):
@@ -94,6 +94,7 @@ def challenge_start(request, slug):
 
 @login_required
 @require_POST
+@json_errors
 def challenge_run(request, slug):
     challenge = _visible_challenge(request, slug)
     data = json_body(request)
@@ -106,6 +107,7 @@ def challenge_run(request, slug):
 
 @login_required
 @require_POST
+@json_errors
 def challenge_submit(request, slug):
     challenge = _visible_challenge(request, slug)
     data = json_body(request)
@@ -123,6 +125,7 @@ def challenge_submit(request, slug):
 
 @login_required
 @require_POST
+@json_errors
 def challenge_hint(request, slug):
     challenge = _visible_challenge(request, slug)
     try:

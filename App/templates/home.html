@@ -1,81 +1,87 @@
 {% extends 'base.html' %}
 {% load static recode %}
-{% block title %}Code. Compete. Improve.{% endblock %}
+{% block title %}One problem a day{% endblock %}
 {% block body_class %}page-home{% endblock %}
 
 {% block content %}
-<section class="hero hero-home" style="background-image: linear-gradient(90deg, rgba(5,10,20,.92), rgba(5,10,20,.35)), url('{% static 'images/recode-hero.png' %}');">
+<section class="hero hero-home" style="background-image: linear-gradient(90deg, rgba(14,16,32,.96) 0%, rgba(14,16,32,.82) 45%, rgba(14,16,32,.35) 100%), url('{% static 'images/recode-hero.png' %}');">
     <div class="hero-content">
-        <div class="hero-badge"><span class="badge-dot"></span> New challenge every day at 00:00 UTC</div>
-        <h1>Sharpen your skills.<span>Together.</span></h1>
+        <h1>One problem a day.</h1>
         <p class="hero-description">
-            One problem a day. Solve it solo or with a team of up to five. Rankings update live —
-            correctness, attempts, speed and efficiency all count.
+            Everyone gets the same coding challenge at 00:00 UTC. Solve it alone or with up to four friends,
+            and see where you land on the live leaderboard before it closes.
         </p>
         <div class="hero-buttons">
-            <a href="{% url 'today' %}" class="button">Start coding <span class="arrow">&rarr;</span></a>
-            <a href="#features" class="button button-ghost">How it works</a>
+            <a href="{% url 'today' %}" class="button">Solve today's problem</a>
+            {% if not user.is_authenticated %}<a href="{% url 'register' %}" class="button button-ghost">Create an account</a>{% endif %}
         </div>
 
-        <div class="today-card">
-            <div class="today-card-head">
-                <span class="eyebrow">Today · {{ challenge.release_date|date:"M j" }}</span>
-                <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
+        <div class="drop-card">
+            <div>
+                <div class="drop-meta">Today's problem closes in</div>
+                <span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
             </div>
-            <h3>{{ challenge.title }}</h3>
-            <div class="today-card-meta">
-                <span><strong>{{ solvers }}</strong> solved</span>
-                <span>closes in <strong data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</strong></span>
+            <div class="drop-meta">
+                <span class="pill">{{ challenge.get_difficulty_display }}</span>
+                <h3>{{ challenge.title }}</h3>
+                {{ solvers }} solved so far
             </div>
         </div>
-    </div>
-</section>
-
-<section id="features" class="page section">
-    <div class="section-head">
-        <span class="eyebrow">The loop</span>
-        <h2>Wordle's habit. Codewars' craft. A team in your corner.</h2>
-    </div>
-    <div class="feature-grid">
-        <div class="r-card feature-card"><div class="feature-icon">⏱</div><h4>Daily drop</h4><p>A fresh problem every day with a hard 24h deadline. Same problem for everyone.</p></div>
-        <div class="r-card feature-card"><div class="feature-icon">🤝</div><h4>Solo or squad</h4><p>Form a team of 2–5, chat, run private challenges and climb the team rankings.</p></div>
-        <div class="r-card feature-card"><div class="feature-icon">📈</div><h4>Live rankings</h4><p>Daily, weekly and all-time boards, filterable by language, team or player.</p></div>
-        <div class="r-card feature-card"><div class="feature-icon">🔥</div><h4>Recoverable streaks</h4><p>Missed a day? Recover it the next day or let a streak freeze cover you.</p></div>
-        <div class="r-card feature-card"><div class="feature-icon">💡</div><h4>Progressive hints</h4><p>First hint is free, the rest cost a few points. Full explanations after the close.</p></div>
-        <div class="r-card feature-card"><div class="feature-icon">🧩</div><h4>Your editor</h4><p>Code in the browser or pull &amp; submit from VS Code or the CLI with the ReCode plugin.</p></div>
     </div>
 </section>
 
 <section class="page section">
-    <div class="row g-4 align-items-start">
+    <div class="section-head">
+        <h2>How a day works</h2>
+        <p>The whole loop fits in 24 hours, and it starts over every night.</p>
+    </div>
+    <ol class="day-line">
+        <li><span class="when">00:00</span><h4>The problem drops</h4><p>A new challenge opens for everyone at midnight UTC.</p></li>
+        <li><span class="when">Start</span><h4>Your clock starts</h4><p>Speed is measured from when you press start, not from midnight.</p></li>
+        <li><span class="when">Live</span><h4>The board moves</h4><p>Every accepted solution lands on the leaderboard as it happens.</p></li>
+        <li><span class="when">24:00</span><h4>Solutions unlock</h4><p>The explanation and everyone's shared code open up for discussion.</p></li>
+    </ol>
+</section>
+
+<section class="page section">
+    <div class="row g-4 g-lg-5">
         <div class="col-lg-6">
-            <span class="eyebrow">Scoring</span>
-            <h2 class="mb-3">100 points, four ways to earn them</h2>
-            <table class="r-table">
-                <thead><tr><th>Component</th><th>Points</th><th>How</th></tr></thead>
+            <div class="section-head mb-3"><h2>What earns points</h2></div>
+            <table class="points-table">
                 <tbody>
-                    <tr><td>Correctness</td><td class="num">60</td><td>All tests pass — no partial credit.</td></tr>
-                    <tr><td>Attempts</td><td class="num">20</td><td>Fewer failed submissions, more points.</td></tr>
-                    <tr><td>Speed</td><td class="num">10</td><td>Time from when you start to your valid submission.</td></tr>
-                    <tr><td>Efficiency</td><td class="num">10</td><td>Runtime &amp; memory vs. the reference solution.</td></tr>
+                    <tr><td class="pts">60</td><td><strong>Correctness</strong><span class="muted">Every test must pass. There's no partial credit.</span></td></tr>
+                    <tr><td class="pts">20</td><td><strong>Attempts</strong><span class="muted">Each failed submission costs a little more than the one before.</span></td></tr>
+                    <tr><td class="pts">10</td><td><strong>Speed</strong><span class="muted">Full points if you solve it within five minutes of starting.</span></td></tr>
+                    <tr><td class="pts">10</td><td><strong>Efficiency</strong><span class="muted">Runtime and memory, compared with the reference solution.</span></td></tr>
                 </tbody>
             </table>
-            <p class="muted small mt-2">Ties are broken by solve time.</p>
+            <p class="muted small mt-3">Ties go to whoever solved it faster.</p>
         </div>
         <div class="col-lg-6">
-            <span class="eyebrow">Live</span>
-            <h2 class="mb-3">Today's top 5</h2>
+            <div class="section-head mb-3 d-flex align-items-center gap-3"><h2 class="mb-0">Today's top 5</h2><span class="live-dot">Live</span></div>
             {% if top %}
             <ol class="mini-board">
                 {% for row in top %}
-                <li><span class="rank">#{{ row.rank }}</span><span class="name">{{ row.name }}{% if row.kind == 'team' %} <span class="pill pill-team">team</span>{% endif %}</span><span class="num">{{ row.score }}</span></li>
+                <li><span class="rank">{{ row.rank }}</span><span class="name">{{ row.name }}{% if row.kind == 'team' %} <span class="pill pill-team">Team</span>{% endif %}</span><span class="num">{{ row.score }}</span></li>
                 {% endfor %}
             </ol>
             {% else %}
-            <div class="empty">Nobody has solved today's challenge yet. Be the first.</div>
+            <div class="empty">Nobody has solved today's problem yet.</div>
             {% endif %}
-            <a class="link-arrow" href="{% url 'leaderboard' %}">Full leaderboard &rarr;</a>
+            <a class="link-arrow" href="{% url 'leaderboard' %}">See the full leaderboard</a>
         </div>
+    </div>
+</section>
+
+<section class="page section">
+    <div class="section-head"><h2>Built for the daily habit</h2></div>
+    <div class="feature-list">
+        <div><h4>Teams of up to five</h4><p>Share one entry, chat while you work, and write private problems for each other.</p></div>
+        <div><h4>Streaks you can save</h4><p>Missed a day? Solve yesterday's problem today, or let a streak freeze cover it.</p></div>
+        <div><h4>Hints that cost a little</h4><p>The first hint is free. Each one after that takes three points off your score.</p></div>
+        <div><h4>Your own editor</h4><p>Code in the browser, or pull and submit from VS Code or the command line.</p></div>
+        <div><h4>Python and JavaScript</h4><p>Pick your language per problem. Leaderboards filter by language too.</p></div>
+        <div><h4>Fair play</h4><p>Solutions stay hidden until the deadline, and copied code gets flagged.</p></div>
     </div>
 </section>
 {% endblock %}

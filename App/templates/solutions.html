@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load recode %}
-{% block title %}Solutions · {{ challenge.title }}{% endblock %}
+{% block title %}{{ challenge.title }} solutions{% endblock %}
 {% block content %}
 <div class="page page-narrow">
-    <a class="link-arrow small" href="{{ challenge.get_absolute_url }}">&larr; Back to {{ challenge.title }}</a>
+    <a class="link-arrow small" href="{{ challenge.get_absolute_url }}">Back to {{ challenge.title }}</a>
     <div class="page-head mt-2">
         <div>
-            <span class="eyebrow">Solution gallery</span>
+            <span class="eyebrow">Shared solutions</span>
             <h1>{{ challenge.title }}</h1>
         </div>
         {% if not locked %}
@@ -22,9 +22,9 @@
 
     {% if locked %}
     <div class="r-card text-center p-5">
-        <div class="display-6">🔒</div>
-        <h3>Unlocks when the challenge closes</h3>
-        <p class="muted">Solutions stay hidden until <span class="mono" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span> from now, so nobody can copy their way up the board.</p>
+        <h3>Shared solutions open after the deadline</h3>
+        <p class="muted">They stay hidden so nobody can copy their way up the board. Opens in</p>
+        <span class="tile-clock" style="font-size: 26px" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
     </div>
     {% else %}
     <div class="r-card mb-3">
@@ -39,7 +39,7 @@
                 <a href="{% url 'public_profile' s.user.username %}"><strong>{{ s.user.profile.name }}</strong></a>
                 {% if s.participation.team %}<span class="pill pill-team">{{ s.participation.team.name }}</span>{% endif %}
                 <span class="pill">{{ s.language|lang_label }}</span>
-                <span class="muted small">score {{ s.participation.score|floatformat:1 }}{% if s.runtime_ms %} · {{ s.runtime_ms|floatformat:1 }} ms{% endif %}</span>
+                <span class="muted small">scored {{ s.participation.score|floatformat:1 }}{% if s.runtime_ms %}, ran in {{ s.runtime_ms|floatformat:1 }} ms{% endif %}</span>
             </div>
             <button class="btn-r btn-r-sm btn-r-ghost like-btn {% if s.liked %}voted{% endif %}" data-like="{% url 'solution_like' s.pk %}" {% if not user.is_authenticated %}disabled{% endif %}>♥ <span>{{ s.like_count }}</span></button>
         </div>

@@ -24,7 +24,7 @@ MEMORY_LIMIT_BYTES = 512 * 1024 * 1024
 OUTPUT_LIMIT_BYTES = 1024 * 1024
 
 PYTHON_HARNESS = r'''
-import io, json, sys, time, resource, contextlib
+import io, json, sys, time, contextlib
 payload = json.loads(sys.stdin.read())
 marker = payload["marker"]
 real_stdout = sys.stdout
@@ -69,7 +69,14 @@ for case in payload["cases"]:
         entry["error"] = f"{type(exc).__name__}: {exc}"
     entry["stdout"] = out.getvalue()[-1000:]
     results.append(entry)
-emit({"results": results, "max_rss_kb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss})
+try:
+    import resource
+    max_rss_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    if sys.platform == "darwin":
+        max_rss_kb //= 1024  # macOS reports bytes
+except Exception:
+    max_rss_kb = 0  # Windows has no resource module
+emit({"results": results, "max_rss_kb": max_rss_kb})
 '''
 
 JS_HARNESS = r'''
@@ -154,17 +161,44 @@ def available_languages():
     return langs
 
 
+IS_POSIX = os.name == "posix"
+
+
 def _limit_resources(language):
+    """Runs in the child before exec (POSIX only). Each limit is best effort:
+    macOS, for example, rejects RLIMIT_AS, and an exception here would abort the run."""
+
     def apply():
         import resource
 
-        resource.setrlimit(resource.RLIMIT_CPU, (CPU_LIMIT_SECONDS, CPU_LIMIT_SECONDS + 1))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (OUTPUT_LIMIT_BYTES, OUTPUT_LIMIT_BYTES))
+        limits = [
+            (resource.RLIMIT_CPU, (CPU_LIMIT_SECONDS, CPU_LIMIT_SECONDS + 1)),
+            (resource.RLIMIT_FSIZE, (OUTPUT_LIMIT_BYTES, OUTPUT_LIMIT_BYTES)),
+        ]
         if language == "python":  # V8 reserves huge virtual ranges, so only cap Python's address space
-            resource.setrlimit(resource.RLIMIT_AS, (MEMORY_LIMIT_BYTES, MEMORY_LIMIT_BYTES))
-        os.setsid()
+            limits.append((resource.RLIMIT_AS, (MEMORY_LIMIT_BYTES, MEMORY_LIMIT_BYTES)))
+        for which, value in limits:
+            try:
+                resource.setrlimit(which, value)
+            except (ValueError, OSError):
+                pass
+        try:
+            os.setsid()
+        except OSError:
+            pass
 
     return apply
+
+
+def _child_env(workdir):
+    env = {"PATH": os.environ.get("PATH", "") if not IS_POSIX else "/usr/bin:/bin", "HOME": workdir,
+           "PYTHONIOENCODING": "utf-8"}
+    if not IS_POSIX:
+        # Python and Node on Windows refuse to start without these.
+        for key in ("SYSTEMROOT", "SystemRoot", "TEMP", "TMP", "USERPROFILE", "WINDIR", "COMSPEC"):
+            if key in os.environ:
+                env[key] = os.environ[key]
+    return env
 
 
 def execute(language, code, function_name, cases):
@@ -183,12 +217,12 @@ def execute(language, code, function_name, cases):
             if not node:
                 return {"crash": "JavaScript runtime is not installed on this server."}
             script = os.path.join(workdir, "harness.js")
-            with open(script, "w") as fh:
+            with open(script, "w", encoding="utf-8") as fh:
                 fh.write(JS_HARNESS)
             cmd = [node, "--max-old-space-size=256", "--stack-size=4096", script]
         else:
             script = os.path.join(workdir, "harness.py")
-            with open(script, "w") as fh:
+            with open(script, "w", encoding="utf-8") as fh:
                 fh.write(PYTHON_HARNESS)
             cmd = [sys.executable, "-I", "-S", script]
         try:
@@ -198,9 +232,10 @@ def execute(language, code, function_name, cases):
                 capture_output=True,
                 text=True,
                 cwd=workdir,
-                env={"PATH": "/usr/bin:/bin", "HOME": workdir, "PYTHONIOENCODING": "utf-8"},
+                encoding="utf-8",
+                env=_child_env(workdir),
                 timeout=WALL_TIMEOUT_SECONDS,
-                preexec_fn=_limit_resources(language),
+                **({"preexec_fn": _limit_resources(language)} if IS_POSIX else {}),
             )
         except subprocess.TimeoutExpired:
             return {"timeout": True}

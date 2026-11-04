@@ -5,9 +5,8 @@
 <div class="page">
     <div class="page-head">
         <div>
-            <span class="eyebrow">Teams</span>
-            <h1>Better together</h1>
-            <p class="muted mb-0">Teams of up to {{ max_size }} share one entry per challenge, a chat, private challenges and their own leaderboard.</p>
+            <h1>Teams</h1>
+            <p class="muted mb-0">Up to {{ max_size }} people share one entry per problem, a chat, private problems and their own leaderboard.</p>
         </div>
     </div>
 
@@ -28,7 +27,7 @@
                 <span class="eyebrow">Your team</span>
                 <h3 class="mt-1"><a href="{{ my_team.get_absolute_url }}">{{ my_team.name }}</a></h3>
                 <div class="avatars my-2">{% for m in my_team.active_members %}<span class="avatar" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
-                <a class="btn-r btn-r-primary btn-r-sm" href="{{ my_team.get_absolute_url }}">Open team &rarr;</a>
+                <a class="btn-r btn-r-primary btn-r-sm" href="{{ my_team.get_absolute_url }}">Open team</a>
             </div>
             {% elif user.is_authenticated %}
             <div class="r-card mb-3">
@@ -40,7 +39,7 @@
                 </form>
             </div>
             <div class="r-card">
-                <span class="eyebrow">Have an invite code?</span>
+                <span class="eyebrow">Join with an invite code</span>
                 <form method="post" action="{% url 'team_join' %}" class="d-flex gap-2 mt-2">
                     {% csrf_token %}
                     <input name="code" class="form-control" placeholder="e.g. a1B2c3D4" required aria-label="Invite code">
@@ -66,7 +65,7 @@
                         <td class="num">{{ r.row.score|default:0 }}</td>
                     </tr>
                     {% empty %}
-                    <tr><td colspan="4"><div class="empty">No teams yet — start the first one.</div></td></tr>
+                    <tr><td colspan="4"><div class="empty">No teams yet. Create the first one.</div></td></tr>
                     {% endfor %}
                     </tbody>
                 </table>
