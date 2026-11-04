@@ -1,3 +1,9 @@
+{% if not email_is_real %}
+<div class="dev-mail-note" role="note">
+    <strong>Email isn't set up yet.</strong> Your code is printed in the terminal running <code>runserver</code>.
+    To get real emails, follow <code>.env.example</code>.
+</div>
+{% endif %}
 <form method="post" action="{{ post_url }}" class="otp" id="otp-form" data-length="{{ length }}" novalidate>
     {% csrf_token %}
     <label class="visually-hidden" for="otp-input">Verification code</label>

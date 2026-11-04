@@ -1,6 +1,7 @@
 from django.contrib import messages
 import time
 
+from django.conf import settings
 from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
@@ -105,6 +106,7 @@ def login_verify(request):
         "length": verification.CODE_LENGTH,
         "digits": range(verification.CODE_LENGTH),
         "wait": verification.seconds_until_resend(user),
+        "email_is_real": settings.EMAIL_IS_REAL,
     })
 
 

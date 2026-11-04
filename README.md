@@ -43,13 +43,22 @@ python manage.py test App
 
 ## Email verification
 
-Signing up and signing in both need a 6-digit code sent to your email. Accounts without an email are asked to add one at sign-in. In development the email is printed in the `runserver` console, so look there for the code. To send real email, set these environment variables:
+Signing up and signing in both need a 6-digit code sent to your email. Accounts without an email are asked to add one at sign-in.
+
+**Until email is set up, no email is sent.** The code is printed in the terminal running `runserver`, and the code page says so.
+
+To send real email, copy `.env.example` to `.env` (in the same folder as `manage.py`) and fill it in. For Gmail:
+
+1. Turn on 2-Step Verification for your Google account.
+2. Create an App Password at https://myaccount.google.com/apppasswords.
+3. Put your Gmail address in `RECODE_EMAIL_USER` and the 16-character app password in `RECODE_EMAIL_PASSWORD`.
+4. Restart `runserver`, then check it works:
 
 ```bash
-RECODE_EMAIL_HOST=smtp.example.com RECODE_EMAIL_PORT=587 RECODE_EMAIL_USER=... RECODE_EMAIL_PASSWORD=... RECODE_EMAIL_FROM="ReCode <no-reply@example.com>"
+python manage.py sendtestemail you@gmail.com
 ```
 
-Accounts that existed before verification was added are marked as verified automatically.
+`.env` is ignored by git, so your password is never committed. Accounts that existed before verification was added are marked as verified automatically.
 
 ## IDE plugin and API
 

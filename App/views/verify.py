@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -49,6 +50,7 @@ def verify_email(request):
         "length": verification.CODE_LENGTH,
         "digits": range(verification.CODE_LENGTH),
         "wait": verification.seconds_until_resend(user),
+        "email_is_real": settings.EMAIL_IS_REAL,
         "email_form": ChangeEmailForm(initial={"email": user.email}),
     })
 

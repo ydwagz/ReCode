@@ -1228,3 +1228,9 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 .leaderboard-table tbody.live tr.changed { animation: row-flash 1.6s ease-out; }
 /* The full editor fades in over the plain one when it finishes loading. */
 .cm-upgraded { animation: rise-in .3s ease both; }
+.dev-mail-note {
+    margin: 18px 0 0; padding: 10px 14px; text-align: left;
+    border-radius: 10px; border: 1px dashed var(--tile-mid);
+    background: color-mix(in srgb, var(--tile-mid) 12%, transparent);
+    font-size: 14px; line-height: 1.5;
+}

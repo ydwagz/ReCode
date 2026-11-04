@@ -606,3 +606,23 @@ class LoginRightAfterSignupTests(TestCase):
         self.client.post("/login/", {"username": "again", "password": "pw-123456!"})
         self.client.post("/login/", {"username": "again", "password": "pw-123456!"})
         self.assertEqual(len(mail.outbox), 1)
+
+
+class DotenvTests(TestCase):
+    def test_reads_values_without_overriding_real_environment(self):
+        import os
+        import tempfile
+        from pathlib import Path
+
+        from Project.settings import _load_dotenv
+
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / ".env"
+            path.write_text('# comment\nRECODE_T_A=one\nRECODE_T_B="two words"\nRECODE_T_C=from-file\n', encoding="utf-8")
+            with mock.patch.dict(os.environ, {"RECODE_T_C": "from-env"}):
+                _load_dotenv(path)
+                self.assertEqual(os.environ["RECODE_T_A"], "one")
+                self.assertEqual(os.environ["RECODE_T_B"], "two words")
+                self.assertEqual(os.environ["RECODE_T_C"], "from-env")
+            for key in ("RECODE_T_A", "RECODE_T_B"):
+                os.environ.pop(key, None)
