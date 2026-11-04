@@ -1097,9 +1097,11 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
     opacity: 1; visibility: visible;
     transition: opacity .25s ease .25s, visibility 0s linear .25s;
 }
-/* Failsafe: never trap the page behind the loader. */
-.is-loading .page-loader { animation: loader-failsafe 0s linear 8s forwards; }
-@keyframes loader-failsafe { to { opacity: 0; visibility: hidden; } }
+/* Hard cap: the overlay never stays longer than 2s in total (fade starts at 1.7s, gone by 2.0s).
+   If the server is still working after that, only the thin top bar keeps going. */
+.is-loading .page-loader,
+.is-navigating .page-loader { animation: loader-cap .3s ease 1.7s forwards; }
+@keyframes loader-cap { to { opacity: 0; visibility: hidden; } }
 
 .loader-tiles { display: flex; gap: 6px; perspective: 500px; }
 .loader-tiles span {
@@ -1224,3 +1226,5 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 }
 .leaderboard-table tbody.live tr { animation: none; }
 .leaderboard-table tbody.live tr.changed { animation: row-flash 1.6s ease-out; }
+/* The full editor fades in over the plain one when it finishes loading. */
+.cm-upgraded { animation: rise-in .3s ease both; }

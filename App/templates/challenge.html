@@ -3,10 +3,6 @@
 {% block title %}{{ challenge.title }}{% endblock %}
 {% block body_class %}page-challenge{% endblock %}
 
-{% block extra_head %}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-{% endblock %}
 
 {% block content %}
 <div class="challenge-layout">
@@ -187,11 +183,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
 <script>
 (function () {
   const { postJSON, getJSON, escapeHTML, fmtDuration } = window.ReCode;
@@ -242,16 +233,47 @@
       on: (_, fn) => ta.addEventListener("input", fn),
     };
   };
-  const editor = typeof CodeMirror === "undefined" ? fallbackEditor(textarea) : CodeMirror.fromTextArea(textarea, {
-    lineNumbers: true, theme: "dracula", indentUnit: 4, tabSize: 4, matchBrackets: true, autoCloseBrackets: true,
-    mode: langSelect.value === "javascript" ? "javascript" : "python",
-    extraKeys: {
-      Tab: (cm) => cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection(" ".repeat(cm.getOption("indentUnit"))),
-      "Ctrl-Enter": () => submit(), "Cmd-Enter": () => submit(),
-      "Ctrl-'": () => run(), "Cmd-'": () => run(),
-    },
-  });
+  // The plain editor works immediately; CodeMirror (from a CDN) is loaded in the background
+  // and swapped in when it arrives, so a slow CDN never holds up the page.
+  let impl = fallbackEditor(textarea);
+  const changeHandlers = [];
+  const editor = {
+    getValue: () => impl.getValue(),
+    setValue: (v) => impl.setValue(v),
+    setOption: (k, v) => impl.setOption(k, v),
+    on: (event, fn) => { changeHandlers.push(fn); impl.on(event, fn); },
+  };
   editor.setValue(load(langSelect.value));
+
+  const CM = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/";
+  const addScript = (src) => new Promise((ok, fail) => {
+    const el = document.createElement("script"); el.src = CM + src; el.onload = ok; el.onerror = fail; document.head.appendChild(el);
+  });
+  const addStyle = (href) => new Promise((ok) => {
+    const el = document.createElement("link"); el.rel = "stylesheet"; el.href = CM + href; el.onload = ok; el.onerror = ok; document.head.appendChild(el);
+  });
+  Promise.all([
+    addStyle("codemirror.min.css"), addStyle("theme/dracula.min.css"),
+    addScript("codemirror.min.js").then(() => Promise.all(
+      ["mode/python/python.min.js", "mode/javascript/javascript.min.js", "addon/edit/matchbrackets.min.js", "addon/edit/closebrackets.min.js"].map(addScript))),
+  ]).then(() => {
+    const code = impl.getValue();
+    textarea.classList.remove("plain-editor");
+    const cm = CodeMirror.fromTextArea(textarea, {
+      lineNumbers: true, theme: "dracula", indentUnit: langSelect.value === "javascript" ? 2 : 4, tabSize: 4,
+      matchBrackets: true, autoCloseBrackets: true,
+      mode: langSelect.value === "javascript" ? "javascript" : "python",
+      extraKeys: {
+        Tab: (c) => c.somethingSelected() ? c.indentSelection("add") : c.replaceSelection(" ".repeat(c.getOption("indentUnit"))),
+        "Ctrl-Enter": () => submit(), "Cmd-Enter": () => submit(),
+        "Ctrl-'": () => run(), "Cmd-'": () => run(),
+      },
+    });
+    cm.setValue(code);
+    cm.getWrapperElement().classList.add("cm-upgraded");
+    changeHandlers.forEach((fn) => cm.on("change", fn));
+    impl = cm;
+  }).catch(() => { /* CDN unreachable: keep the plain editor */ });
   editor.on("change", () => { try { localStorage.setItem(storeKey(langSelect.value), editor.getValue()); } catch (e) {} });
   langSelect.addEventListener("change", () => {
     editor.setOption("mode", langSelect.value === "javascript" ? "javascript" : "python");
