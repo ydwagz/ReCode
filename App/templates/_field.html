@@ -1,0 +1,15 @@
+{% load recode %}
+{% if field.field.widget.input_type == 'checkbox' %}
+<div class="form-check form-switch mb-2">
+    {{ field|field_input }}
+    <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+</div>
+{% else %}
+<div class="mb-3">
+    {% if field.label %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>{% endif %}
+    {{ field|field_input }}
+    {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+    {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
+</div>
+{% endif %}

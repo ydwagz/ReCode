@@ -1,11 +1,18 @@
 {% extends 'base.html' %}
-
+{% block title %}Log in{% endblock %}
 {% block content %}
-<section class="hero">  
-    <div class="hero-content">
-        <h1>Welcome to ReCode</h1>
-        <p>This is the login page.</p>
+<section class="auth-wrap">
+    <div class="r-card auth-card">
+        <h1>Welcome back</h1>
+        <p class="muted">Today's challenge is waiting.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            {% for error in form.non_field_errors %}<div class="flash flash-error">{{ error }}</div>{% endfor %}
+            {% for field in form %}{% include '_field.html' %}{% endfor %}
+            <button class="btn-r btn-r-primary w-100" type="submit">Log in</button>
+        </form>
+        <p class="muted small mt-3 mb-0">New here? <a href="{% url 'register' %}">Create an account</a></p>
     </div>
 </section>
-    
 {% endblock %}

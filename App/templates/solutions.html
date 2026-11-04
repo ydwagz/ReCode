@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load recode %}
+{% block title %}Solutions · {{ challenge.title }}{% endblock %}
+{% block content %}
+<div class="page page-narrow">
+    <a class="link-arrow small" href="{{ challenge.get_absolute_url }}">&larr; Back to {{ challenge.title }}</a>
+    <div class="page-head mt-2">
+        <div>
+            <span class="eyebrow">Solution gallery</span>
+            <h1>{{ challenge.title }}</h1>
+        </div>
+        {% if not locked %}
+        <form method="get" class="filter-bar">
+            <select name="language" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Language">
+                <option value="">All languages</option>
+                <option value="python" {% if language == 'python' %}selected{% endif %}>Python</option>
+                <option value="javascript" {% if language == 'javascript' %}selected{% endif %}>JavaScript</option>
+            </select>
+        </form>
+        {% endif %}
+    </div>
+
+    {% if locked %}
+    <div class="r-card text-center p-5">
+        <div class="display-6">🔒</div>
+        <h3>Unlocks when the challenge closes</h3>
+        <p class="muted">Solutions stay hidden until <span class="mono" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span> from now, so nobody can copy their way up the board.</p>
+    </div>
+    {% else %}
+    <div class="r-card mb-3">
+        <div class="card-title-row"><span class="eyebrow">Explanation</span>{% if top %}<span class="muted small">Top score: {{ top.score|floatformat:1 }} by {{ top.owner_name }}</span>{% endif %}</div>
+        <div class="statement">{{ challenge.explanation|default:"—"|simple_md }}</div>
+        <details><summary>Reference solution (Python)</summary><pre class="md-pre"><code>{{ reference }}</code></pre></details>
+    </div>
+    {% for s in submissions %}
+    <div class="r-card solution">
+        <div class="card-title-row">
+            <div>
+                <a href="{% url 'public_profile' s.user.username %}"><strong>{{ s.user.profile.name }}</strong></a>
+                {% if s.participation.team %}<span class="pill pill-team">{{ s.participation.team.name }}</span>{% endif %}
+                <span class="pill">{{ s.language|lang_label }}</span>
+                <span class="muted small">score {{ s.participation.score|floatformat:1 }}{% if s.runtime_ms %} · {{ s.runtime_ms|floatformat:1 }} ms{% endif %}</span>
+            </div>
+            <button class="btn-r btn-r-sm btn-r-ghost like-btn {% if s.liked %}voted{% endif %}" data-like="{% url 'solution_like' s.pk %}" {% if not user.is_authenticated %}disabled{% endif %}>♥ <span>{{ s.like_count }}</span></button>
+        </div>
+        <pre class="md-pre"><code>{{ s.code }}</code></pre>
+    </div>
+    {% empty %}
+    <div class="empty">Nobody shared a solution for this one{% if language %} in {{ language|lang_label }}{% endif %}.</div>
+    {% endfor %}
+    {% endif %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.querySelectorAll("[data-like]").forEach((btn) => btn.addEventListener("click", async () => {
+  const res = await ReCode.postJSON(btn.dataset.like);
+  if (!res.ok) return;
+  btn.querySelector("span").textContent = res.count;
+  btn.classList.toggle("voted", res.liked);
+}));
+</script>
+{% endblock %}

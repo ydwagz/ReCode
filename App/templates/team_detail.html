@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load recode %}
+{% block title %}{{ team.name }}{% endblock %}
+{% block content %}
+<div class="page">
+    <div class="page-head">
+        <div>
+            <span class="eyebrow">Team</span>
+            <h1>{{ team.name }}</h1>
+            <p class="muted mb-0">{{ team.description|default:"" }}</p>
+        </div>
+        <div class="team-kpis">
+            <div><strong>{{ member_rows|length }}/{{ max_size }}</strong><span>members</span></div>
+            <div><strong>🔥 {{ streak }}</strong><span>team streak</span></div>
+            <div><strong>{{ stats.solved }}</strong><span>solved</span></div>
+            <div><strong>{{ stats.score }}</strong><span>team points</span></div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="r-card mb-4">
+                <div class="card-title-row"><span class="eyebrow">Members · private leaderboard</span></div>
+                <table class="r-table compact">
+                    <thead><tr><th>#</th><th>Member</th><th class="num">Streak</th><th class="num">Solo pts</th>{% if is_owner %}<th></th>{% endif %}</tr></thead>
+                    <tbody>
+                    {% for m in member_rows %}
+                    <tr>
+                        <td class="muted">{{ forloop.counter }}</td>
+                        <td><span class="avatar avatar-sm">{{ m.user.profile.name|initials }}</span> <a href="{% url 'public_profile' m.user.username %}">{{ m.user.profile.name }}</a>{% if m.is_owner %} <span class="pill">captain</span>{% endif %}</td>
+                        <td class="num">🔥 {{ m.streak.current }}</td>
+                        <td class="num">{{ m.row.score|default:0 }}</td>
+                        {% if is_owner %}<td class="text-end">{% if not m.is_owner %}
+                            <form method="post" action="{% url 'team_kick' team.slug m.user.username %}" onsubmit="return confirm('Remove {{ m.user.username|escapejs }} from the team?')">{% csrf_token %}<button class="btn-r btn-r-sm btn-r-ghost">Remove</button></form>
+                        {% endif %}</td>{% endif %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            {% if is_member %}
+            <div class="r-card mb-4">
+                <div class="card-title-row">
+                    <span class="eyebrow">Private challenges</span>
+                    <a class="btn-r btn-r-sm btn-r-ghost" href="{% url 'team_private_challenge' team.slug %}">+ New</a>
+                </div>
+                {% if private %}
+                <ul class="plain-list">
+                    {% for c in private %}
+                    <li><a href="{{ c.get_absolute_url }}">{{ c.title }}</a> <span class="pill pill-{{ c.difficulty }}">{{ c.get_difficulty_display }}</span> <span class="muted small">{{ c.release_date|date:"M j" }}{% if c.release_date > today %} · upcoming{% elif c.is_open %} · live{% endif %}</span></li>
+                    {% endfor %}
+                </ul>
+                {% else %}<div class="empty">Write a problem for your teammates — it gets its own private leaderboard.</div>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="r-card">
+                <span class="eyebrow">Recent team results</span>
+                {% if history %}
+                <table class="r-table compact mt-2">
+                    <tbody>
+                    {% for e in history %}
+                    <tr><td><a href="{{ e.challenge.get_absolute_url }}">{{ e.challenge.title }}</a> <span class="muted small">{{ e.challenge.release_date|date:"M j" }}</span></td><td class="num">{{ e.score|floatformat:1 }}</td><td class="num muted">{{ e.solve_seconds|duration }}</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}<div class="empty">No team solves yet. Pick “Team” mode on a challenge to play together.</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            {% if is_member %}
+            <div class="r-card chat-card mb-4">
+                <div class="card-title-row"><span class="eyebrow">Team chat</span><span class="live-dot">live</span></div>
+                <div class="chat-log" id="chat-log">
+                    {% for m in messages_list %}
+                    <div class="chat-msg {% if m.author == user %}mine{% endif %}" data-id="{{ m.pk }}"><span class="chat-author">{{ m.author.profile.name }}</span><span class="chat-body">{{ m.body }}</span><span class="chat-time">{{ m.created_at|date:"H:i" }}</span></div>
+                    {% empty %}<div class="empty" id="chat-empty">Say hi to your team 👋</div>{% endfor %}
+                </div>
+                <form id="chat-form" class="d-flex gap-2 mt-2">
+                    <input id="chat-input" class="form-control" maxlength="1000" placeholder="Message {{ team.name }}" autocomplete="off" aria-label="Message">
+                    <button class="btn-r btn-r-primary">Send</button>
+                </form>
+            </div>
+
+            <div class="r-card mb-4">
+                <span class="eyebrow">Invite</span>
+                {% if member_rows|length < max_size %}
+                <form method="post" action="{% url 'team_invite' team.slug %}" class="d-flex gap-2 mt-2">
+                    {% csrf_token %}
+                    <input name="username" class="form-control" placeholder="Username" required aria-label="Username to invite">
+                    <button class="btn-r btn-r-ghost">Invite</button>
+                </form>
+                <label class="form-label small muted mt-3" for="invite-url">Or share this link</label>
+                <div class="d-flex gap-2">
+                    <input id="invite-url" class="form-control mono small" value="{{ invite_url }}" readonly>
+                    <button class="btn-r btn-r-ghost btn-r-sm" type="button" data-copy="#invite-url">Copy</button>
+                </div>
+                <p class="muted small mt-2 mb-0">Code: <span class="mono">{{ team.invite_code }}</span></p>
+                {% else %}
+                <p class="muted mt-2 mb-0">The team is full ({{ max_size }}/{{ max_size }}).</p>
+                {% endif %}
+                {% if pending_invites %}
+                <p class="muted small mt-2 mb-0">Pending: {% for i in pending_invites %}{{ i.invited_user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}</p>
+                {% endif %}
+                {% if is_owner %}
+                <form method="post" action="{% url 'team_regenerate_code' team.slug %}" class="mt-2">{% csrf_token %}<button class="btn-r btn-r-sm btn-r-ghost">Regenerate invite code</button></form>
+                {% endif %}
+            </div>
+
+            <form method="post" action="{% url 'team_leave' team.slug %}" onsubmit="return confirm('Leave {{ team.name|escapejs }}?')">
+                {% csrf_token %}
+                <button class="btn-r btn-r-danger btn-r-sm">Leave team</button>
+            </form>
+            {% else %}
+            <div class="r-card">
+                <p class="muted">You're viewing {{ team.name }} from the outside. Ask a member for an invite link to join.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if is_member %}
+<script>
+(function () {
+  const log = document.getElementById("chat-log");
+  const url = "{% url 'team_chat' team.slug %}";
+  const esc = ReCode.escapeHTML;
+  log.scrollTop = log.scrollHeight;
+  const lastId = () => { const msgs = log.querySelectorAll(".chat-msg"); return msgs.length ? msgs[msgs.length - 1].dataset.id : ""; };
+  function append(messages) {
+    if (!messages.length) return;
+    const empty = document.getElementById("chat-empty"); if (empty) empty.remove();
+    const nearBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 60;
+    messages.forEach((m) => {
+      if (log.querySelector('[data-id="' + m.id + '"]')) return;
+      log.insertAdjacentHTML("beforeend", "<div class='chat-msg" + (m.mine ? " mine" : "") + "' data-id='" + m.id + "'><span class='chat-author'>" +
+        esc(m.author) + "</span><span class='chat-body'>" + esc(m.body) + "</span><span class='chat-time'>" + esc(m.at) + "</span></div>");
+    });
+    if (nearBottom) log.scrollTop = log.scrollHeight;
+  }
+  async function poll() {
+    const res = await ReCode.getJSON(url + "?after=" + lastId());
+    if (res.ok) append(res.messages);
+  }
+  document.getElementById("chat-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("chat-input");
+    const body = input.value.trim();
+    if (!body) return;
+    input.value = "";
+    const res = await ReCode.postJSON(url + "?after=" + lastId(), { body });
+    if (res.ok) { append(res.messages); log.scrollTop = log.scrollHeight; } else alert(res.error);
+  });
+  setInterval(poll, 4000);
+})();
+</script>
+{% endif %}
+{% endblock %}

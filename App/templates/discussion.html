@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load recode %}
+{% block title %}Discuss · {{ challenge.title }}{% endblock %}
+{% block content %}
+<div class="page page-narrow">
+    <a class="link-arrow small" href="{{ challenge.get_absolute_url }}">&larr; Back to {{ challenge.title }}</a>
+    <div class="page-head mt-2">
+        <div>
+            <span class="eyebrow">Discussion</span>
+            <h1>{{ challenge.title }}</h1>
+            {% if not challenge.is_closed %}<p class="muted mb-0">The challenge is live — keep full solutions out of here until it closes.</p>{% endif %}
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+    <form method="post" class="r-card comment-form">
+        {% csrf_token %}
+        {{ form.body }}
+        <div class="text-end mt-2"><button class="btn-r btn-r-primary btn-r-sm">Post</button></div>
+    </form>
+    {% else %}
+    <div class="r-card"><a href="{% url 'login' %}?next={{ request.path }}">Log in</a> to join the discussion.</div>
+    {% endif %}
+
+    <div class="comments">
+    {% for comment in comments %}
+        <article class="comment" id="c{{ comment.pk }}">
+            {% include '_vote.html' with c=comment %}
+            <div class="comment-body">
+                <div class="comment-meta"><a href="{% url 'public_profile' comment.author.username %}">{{ comment.author.profile.name }}</a> · {{ comment.created_at|timesince }} ago</div>
+                <div>{{ comment.body|simple_md }}</div>
+                {% for reply in comment.replies.all %}
+                <article class="comment reply" id="c{{ reply.pk }}">
+                    {% include '_vote.html' with c=reply %}
+                    <div class="comment-body">
+                        <div class="comment-meta"><a href="{% url 'public_profile' reply.author.username %}">{{ reply.author.profile.name }}</a> · {{ reply.created_at|timesince }} ago</div>
+                        <div>{{ reply.body|simple_md }}</div>
+                    </div>
+                </article>
+                {% endfor %}
+                {% if user.is_authenticated %}
+                <details class="reply-box">
+                    <summary>Reply</summary>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="parent" value="{{ comment.pk }}">
+                        <textarea name="body" rows="2" class="form-control" required maxlength="4000"></textarea>
+                        <button class="btn-r btn-r-sm btn-r-ghost mt-2">Reply</button>
+                    </form>
+                </details>
+                {% endif %}
+            </div>
+        </article>
+    {% empty %}
+        <div class="empty">No comments yet. Start the conversation.</div>
+    {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,96 +1,98 @@
-{% load static %}
-
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>{% block title %}ReCode{% endblock %}</title>
+    <title>{% block title %}ReCode{% endblock %} · ReCode</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-          rel="stylesheet">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
-          rel="stylesheet">
-
-    <link rel="stylesheet" href="../static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    {% block extra_head %}{% endblock %}
 </head>
 
-<body>
+<body class="{% block body_class %}{% endblock %}">
 
 <nav class="navbar navbar-expand-lg navbar-dark recode-navbar">
     <div class="container">
-
-        <a class="navbar-brand recode-logo" href="/">
+        <a class="navbar-brand recode-logo" href="{% url 'home' %}">
             <span class="logo-symbol">&lt;/&gt;</span> ReCode
         </a>
 
-        <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarContent"
-                aria-controls="navbarContent"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+                aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
 
+        {% with name=request.resolver_match.url_name %}
         <div class="collapse navbar-collapse" id="navbarContent">
-            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Home</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/recode">Challenges</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/dashboard">Dashboard</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/leaderboard">Leaderboard</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/profile">Profile</a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="/settings">Settings</a>
-                </li>
-
-                <li class="nav-item ms-lg-2">
-                    <a class="nav-link nav-cta" href="/recode">
-                        Start Coding &rarr;
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+                <li class="nav-item"><a class="nav-link {% if name == 'challenge_list' or name == 'challenge_detail' %}active{% endif %}" href="{% url 'challenge_list' %}">Challenges</a></li>
+                {% if user.is_authenticated %}
+                <li class="nav-item"><a class="nav-link {% if name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Dashboard</a></li>
+                {% endif %}
+                <li class="nav-item"><a class="nav-link {% if name == 'leaderboard' %}active{% endif %}" href="{% url 'leaderboard' %}">Leaderboard</a></li>
+                <li class="nav-item"><a class="nav-link {% if name == 'teams' or name == 'team_detail' %}active{% endif %}" href="{% url 'teams' %}">Teams</a></li>
+                <li class="nav-item"><a class="nav-link {% if name == 'community' %}active{% endif %}" href="{% url 'community' %}">Community</a></li>
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="avatar avatar-sm">{{ user.profile.name|slice:":1"|upper }}</span> {{ user.profile.name }}
                     </a>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark" aria-labelledby="userMenu">
+                        <li><a class="dropdown-item" href="{% url 'profile' %}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{% url 'settings' %}">Settings &amp; integrations</a></li>
+                        {% if user.is_staff %}<li><a class="dropdown-item" href="/admin/">Admin</a></li>{% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                                <button class="dropdown-item" type="submit">Log out</button>
+                            </form>
+                        </li>
+                    </ul>
                 </li>
-
+                {% else %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Log in</a></li>
+                {% endif %}
+                <li class="nav-item ms-lg-2">
+                    <a class="nav-link nav-cta" href="{% url 'today' %}">Today's challenge &rarr;</a>
+                </li>
             </ul>
         </div>
-
+        {% endwith %}
     </div>
 </nav>
 
-<main class="container recode-main">
-    {% block content %}
-    {% endblock %}
+{% if messages %}
+<div class="flash-stack container">
+    {% for message in messages %}
+    <div class="flash flash-{{ message.tags }}" role="status">
+        <span>{{ message }}</span>
+        <button type="button" class="flash-close" aria-label="Dismiss" onclick="this.parentElement.remove()">&times;</button>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<main class="recode-main">
+    {% block content %}{% endblock %}
 </main>
 
 <footer class="recode-footer">
-    <div class="container">
+    <div class="container footer-inner">
         <p>Built together. Solved together. &copy; {% now "Y" %} ReCode</p>
+        <p class="footer-links">
+            <a href="{% url 'challenge_list' %}">Archive</a>
+            <a href="{% url 'leaderboard' %}">Leaderboards</a>
+            <a href="{% url 'settings' %}#integrations">IDE plugin</a>
+        </p>
     </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
-
+<script src="{% static 'recode.js' %}"></script>
+{% block extra_js %}{% endblock %}
 </body>
 </html>

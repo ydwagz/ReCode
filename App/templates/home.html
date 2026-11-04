@@ -1,64 +1,80 @@
 {% extends 'base.html' %}
+{% load static recode %}
+{% block title %}Code. Compete. Improve.{% endblock %}
+{% block body_class %}page-home{% endblock %}
 
 {% block content %}
-
-{% load static %}
-<link rel="stylesheet" href="{% static 'style.css' %}">
-
-<body>
-
-    <style>
-        .hero {
-        position: relative;
-        width: 100%;
-        min-height: 100vh;
-        min-height: 100svh;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        overflow: hidden;
-
-        background-image:
-        linear-gradient(
-            90deg,
-            rgba(5, 10, 20, 0.85),
-            rgba(5, 10, 20, 0.2)
-        ),
-        url("/static/images/recode-hero.png");
-
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-}
-    </style>
-
-<section class="hero">
-
+<section class="hero hero-home" style="background-image: linear-gradient(90deg, rgba(5,10,20,.92), rgba(5,10,20,.35)), url('{% static 'images/recode-hero.png' %}');">
     <div class="hero-content">
-
-        <h1>
-            Sharpen your skills.
-            <span>Together.</span>
-        </h1>
-
+        <div class="hero-badge"><span class="badge-dot"></span> New challenge every day at 00:00 UTC</div>
+        <h1>Sharpen your skills.<span>Together.</span></h1>
         <p class="hero-description">
-            ReCode is a community of coders who solve challenges,
-            support each other, and grow together. Join daily coding
-            challenges, team up with friends, and track your progress.
+            One problem a day. Solve it solo or with a team of up to five. Rankings update live —
+            correctness, attempts, speed and efficiency all count.
         </p>
-
         <div class="hero-buttons">
+            <a href="{% url 'today' %}" class="button">Start coding <span class="arrow">&rarr;</span></a>
+            <a href="#features" class="button button-ghost">How it works</a>
+        </div>
 
-            <a href="/recode" class="button">
-                Start Coding
-                <span class="arrow">&rarr;</span>
-            </a>
+        <div class="today-card">
+            <div class="today-card-head">
+                <span class="eyebrow">Today · {{ challenge.release_date|date:"M j" }}</span>
+                <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
+            </div>
+            <h3>{{ challenge.title }}</h3>
+            <div class="today-card-meta">
+                <span><strong>{{ solvers }}</strong> solved</span>
+                <span>closes in <strong data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</strong></span>
+            </div>
+        </div>
+    </div>
+</section>
 
-            <a href="#features" class="button">
-                Learn More
-            </a>
+<section id="features" class="page section">
+    <div class="section-head">
+        <span class="eyebrow">The loop</span>
+        <h2>Wordle's habit. Codewars' craft. A team in your corner.</h2>
+    </div>
+    <div class="feature-grid">
+        <div class="r-card feature-card"><div class="feature-icon">⏱</div><h4>Daily drop</h4><p>A fresh problem every day with a hard 24h deadline. Same problem for everyone.</p></div>
+        <div class="r-card feature-card"><div class="feature-icon">🤝</div><h4>Solo or squad</h4><p>Form a team of 2–5, chat, run private challenges and climb the team rankings.</p></div>
+        <div class="r-card feature-card"><div class="feature-icon">📈</div><h4>Live rankings</h4><p>Daily, weekly and all-time boards, filterable by language, team or player.</p></div>
+        <div class="r-card feature-card"><div class="feature-icon">🔥</div><h4>Recoverable streaks</h4><p>Missed a day? Recover it the next day or let a streak freeze cover you.</p></div>
+        <div class="r-card feature-card"><div class="feature-icon">💡</div><h4>Progressive hints</h4><p>First hint is free, the rest cost a few points. Full explanations after the close.</p></div>
+        <div class="r-card feature-card"><div class="feature-icon">🧩</div><h4>Your editor</h4><p>Code in the browser or pull &amp; submit from VS Code or the CLI with the ReCode plugin.</p></div>
+    </div>
+</section>
 
+<section class="page section">
+    <div class="row g-4 align-items-start">
+        <div class="col-lg-6">
+            <span class="eyebrow">Scoring</span>
+            <h2 class="mb-3">100 points, four ways to earn them</h2>
+            <table class="r-table">
+                <thead><tr><th>Component</th><th>Points</th><th>How</th></tr></thead>
+                <tbody>
+                    <tr><td>Correctness</td><td class="num">60</td><td>All tests pass — no partial credit.</td></tr>
+                    <tr><td>Attempts</td><td class="num">20</td><td>Fewer failed submissions, more points.</td></tr>
+                    <tr><td>Speed</td><td class="num">10</td><td>Time from when you start to your valid submission.</td></tr>
+                    <tr><td>Efficiency</td><td class="num">10</td><td>Runtime &amp; memory vs. the reference solution.</td></tr>
+                </tbody>
+            </table>
+            <p class="muted small mt-2">Ties are broken by solve time.</p>
+        </div>
+        <div class="col-lg-6">
+            <span class="eyebrow">Live</span>
+            <h2 class="mb-3">Today's top 5</h2>
+            {% if top %}
+            <ol class="mini-board">
+                {% for row in top %}
+                <li><span class="rank">#{{ row.rank }}</span><span class="name">{{ row.name }}{% if row.kind == 'team' %} <span class="pill pill-team">team</span>{% endif %}</span><span class="num">{{ row.score }}</span></li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <div class="empty">Nobody has solved today's challenge yet. Be the first.</div>
+            {% endif %}
+            <a class="link-arrow" href="{% url 'leaderboard' %}">Full leaderboard &rarr;</a>
         </div>
     </div>
 </section>

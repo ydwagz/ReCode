@@ -1,11 +1,96 @@
 {% extends 'base.html' %}
-
+{% block title %}Settings{% endblock %}
 {% block content %}
-<section class="hero">  
-    <div class="hero-content">
-        <h1>Welcome to ReCode</h1>
-        <p>This is the settings page.</p>
+<div class="page settings-layout">
+    <aside class="settings-nav">
+        <span class="eyebrow">Settings</span>
+        <a href="#account">Account</a>
+        <a href="#preferences">Preferences &amp; privacy</a>
+        <a href="#password">Password</a>
+        <a href="#integrations">IDE plugin &amp; API</a>
+        <a href="#webhook">Webhooks</a>
+    </aside>
+
+    <div class="settings-main">
+        <section id="account" class="r-card mb-4">
+            <h3>Account</h3>
+            <form method="post">{% csrf_token %}<input type="hidden" name="section" value="account">
+                {% for field in account %}{% include '_field.html' %}{% endfor %}
+                <button class="btn-r btn-r-primary">Save account</button>
+            </form>
+        </section>
+
+        <section id="preferences" class="r-card mb-4">
+            <h3>Preferences &amp; privacy</h3>
+            <form method="post">{% csrf_token %}<input type="hidden" name="section" value="preferences">
+                {% include '_field.html' with field=preferences.default_language %}
+                <h5 class="section-label">Notifications</h5>
+                {% include '_field.html' with field=preferences.notify_daily %}
+                {% include '_field.html' with field=preferences.notify_team %}
+                {% include '_field.html' with field=preferences.notify_streak %}
+                <h5 class="section-label">Privacy</h5>
+                {% include '_field.html' with field=preferences.public_profile %}
+                {% include '_field.html' with field=preferences.show_on_leaderboard %}
+                <button class="btn-r btn-r-primary mt-2">Save preferences</button>
+            </form>
+        </section>
+
+        <section id="password" class="r-card mb-4">
+            <h3>Password</h3>
+            <form method="post">{% csrf_token %}<input type="hidden" name="section" value="password">
+                {% for field in password %}{% include '_field.html' %}{% endfor %}
+                <button class="btn-r btn-r-primary">Change password</button>
+            </form>
+        </section>
+
+        <section id="integrations" class="r-card mb-4">
+            <h3>IDE plugin &amp; API</h3>
+            <p class="muted">Pull the daily problem, run the examples and submit without leaving your editor. Your token works like a password — keep it secret.</p>
+            <label class="form-label" for="api-token">Your plugin token</label>
+            <div class="d-flex gap-2 mb-2">
+                <input id="api-token" class="form-control mono" type="password" value="{{ token }}" readonly onfocus="this.type='text'" onblur="this.type='password'">
+                <button class="btn-r btn-r-ghost btn-r-sm" type="button" data-copy="#api-token">Copy</button>
+            </div>
+            <form method="post" onsubmit="return confirm('Generate a new token? Existing plugins will stop working until you update them.')">
+                {% csrf_token %}<input type="hidden" name="section" value="token">
+                <button class="btn-r btn-r-sm btn-r-ghost">Regenerate token</button>
+            </form>
+
+            <h5 class="section-label mt-4">VS Code</h5>
+            <ol class="small">
+                <li>Install the extension from <code>plugins/vscode</code> in the ReCode repo (<em>Extensions → … → Install from VSIX</em>, or open the folder and press <kbd>F5</kbd>).</li>
+                <li>Run <strong>ReCode: Set API Token</strong> and paste the token above. Set <code>recode.serverUrl</code> to <code>{{ request.scheme }}://{{ request.get_host }}</code>.</li>
+                <li>Use <strong>ReCode: Pull Today's Challenge</strong>, <strong>Run Examples</strong> and <strong>Submit Current File</strong>.</li>
+            </ol>
+
+            <h5 class="section-label">Any editor (CLI)</h5>
+            <pre class="md-pre"><code>export RECODE_URL={{ request.scheme }}://{{ request.get_host }}
+export RECODE_TOKEN=&lt;your token&gt;
+python plugins/recode_cli.py pull          # writes today's starter file
+python plugins/recode_cli.py run  solution.py
+python plugins/recode_cli.py submit solution.py</code></pre>
+
+            <h5 class="section-label">REST API</h5>
+            <p class="small muted">Send <code>Authorization: Token &lt;token&gt;</code> with every request. Base URL: <code>{{ api_base }}</code></p>
+            <table class="r-table compact small">
+                <tbody>
+                    <tr><td><code>GET me/</code></td><td>Your profile, streak and stats</td></tr>
+                    <tr><td><code>GET today/</code></td><td>Today's challenge, starter code &amp; examples</td></tr>
+                    <tr><td><code>GET challenges/&lt;slug&gt;/</code></td><td>Any challenge you can see</td></tr>
+                    <tr><td><code>POST run/</code></td><td><code>{"code", "language", "challenge"?}</code> — examples only, free</td></tr>
+                    <tr><td><code>POST submit/</code></td><td><code>{"code", "language", "challenge"?, "mode"?: "solo"|"team"}</code> — scored</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="webhook" class="r-card mb-4">
+            <h3>Webhooks</h3>
+            <p class="muted small">We'll POST JSON like <code>{"event": "challenge.solved", "challenge": "...", "score": 93.5, ...}</code> to this URL whenever you (or your team) solve a challenge. Great for Discord/Slack bots.</p>
+            <form method="post">{% csrf_token %}<input type="hidden" name="section" value="webhook">
+                {% for field in webhook %}{% include '_field.html' %}{% endfor %}
+                <button class="btn-r btn-r-primary">Save webhook</button>
+            </form>
+        </section>
     </div>
-</section>
-    
+</div>
 {% endblock %}

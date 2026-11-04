@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load recode %}
+{% block title %}Community{% endblock %}
+{% block content %}
+<div class="page">
+    <div class="page-head">
+        <div>
+            <span class="eyebrow">Community</span>
+            <h1>What's happening</h1>
+            <p class="muted mb-0">Live solves, discussion threads, and solution galleries for closed challenges.</p>
+        </div>
+        <a class="btn-r btn-r-primary" href="{% url 'challenge_discussion' challenge.slug %}">Discuss today's challenge</a>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="r-card">
+                <span class="eyebrow">Feed</span>
+                <ul class="feed">
+                {% for a in activity %}
+                    <li class="feed-item">
+                        {% if a.kind == 'solve' %}
+                        <span class="feed-icon">✅</span>
+                        <div>
+                            <a href="{{ a.url }}"><strong>{{ a.who }}</strong></a>{% if a.is_team %} <span class="pill pill-team">team</span>{% endif %}
+                            solved <a href="{{ a.challenge.get_absolute_url }}">{{ a.challenge.title }}</a>
+                            in {{ a.seconds|duration }} for <strong>{{ a.score|floatformat:1 }}</strong> pts
+                            <div class="muted small">{{ a.ago }} ago</div>
+                        </div>
+                        {% else %}
+                        <span class="feed-icon">💬</span>
+                        <div>
+                            <a href="{{ a.url }}"><strong>{{ a.who }}</strong></a> commented on
+                            <a href="{% url 'challenge_discussion' a.challenge.slug %}#c{{ a.comment_id }}">{{ a.challenge.title }}</a>
+                            <div class="feed-quote">{{ a.body|truncatechars:160 }}</div>
+                            <div class="muted small">{{ a.ago }} ago</div>
+                        </div>
+                        {% endif %}
+                    </li>
+                {% empty %}
+                    <li class="empty">Quiet so far today.</li>
+                {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="r-card mb-4">
+                <span class="eyebrow">Hot comments</span>
+                <ul class="plain-list mt-2">
+                    {% for c in hot %}
+                    <li><span class="pill">▲ {{ c.score }}</span> <a href="{% url 'challenge_discussion' c.challenge.slug %}#c{{ c.pk }}">{{ c.body|truncatechars:80 }}</a><div class="muted small">{{ c.author.profile.name }} on {{ c.challenge.title }}</div></li>
+                    {% empty %}<li class="muted">No comments yet.</li>{% endfor %}
+                </ul>
+            </div>
+            <div class="r-card mb-4">
+                <span class="eyebrow">Discussion threads</span>
+                <ul class="plain-list mt-2">
+                    {% for c in threads %}
+                    <li class="d-flex justify-content-between"><a href="{% url 'challenge_discussion' c.slug %}">{{ c.title }} <span class="muted small">{{ c.release_date|date:"M j" }}</span></a><span class="muted small">{{ c.n_comments }} 💬</span></li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="r-card">
+                <span class="eyebrow">Solution galleries</span>
+                <ul class="plain-list mt-2">
+                    {% for c in galleries %}
+                    <li class="d-flex justify-content-between"><a href="{% url 'solutions' c.slug %}">{{ c.title }} <span class="muted small">{{ c.release_date|date:"M j" }}</span></a><span class="muted small">{{ c.n_shared }} shared</span></li>
+                    {% empty %}<li class="muted">Galleries unlock after a challenge closes.</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
