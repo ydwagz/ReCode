@@ -1,11 +1,95 @@
 {% extends 'base.html' %}
-
+{% load recode %}
+{% block title %}{{ subject.profile.name }}{% endblock %}
 {% block content %}
-<section class="hero">  
-    <div class="hero-content">
-        <h1>Welcome to ReCode</h1>
-        <p>This is the profile page.</p>
+<div class="page">
+    <div class="profile-head">
+        <span class="avatar avatar-xl">{{ subject.profile.name|initials }}</span>
+        <div>
+            <h1 class="mb-1">{{ subject.profile.name }}</h1>
+            <div class="muted">@{{ subject.username }} · joined {{ subject.date_joined|date:"M Y" }}{% if subject.profile.active_team %} · <a href="{{ subject.profile.active_team.get_absolute_url }}">{{ subject.profile.active_team.name }}</a>{% endif %}</div>
+            {% if subject.profile.bio %}<p class="mt-2 mb-0">{{ subject.profile.bio }}</p>{% endif %}
+        </div>
+        {% if is_me %}<a class="btn-r btn-r-ghost ms-auto" href="{% url 'settings' %}">Edit profile</a>{% endif %}
     </div>
-</section>
-    
+
+    <div class="stat-grid">
+        <div class="r-card stat"><strong>🔥 {{ streak.current }}</strong><span>current streak</span></div>
+        <div class="r-card stat"><strong>{{ streak.longest }}</strong><span>longest streak</span></div>
+        <div class="r-card stat"><strong>{{ stats.solved }}</strong><span>challenges solved</span></div>
+        <div class="r-card stat"><strong>{{ stats.avg_score }}</strong><span>avg score</span></div>
+        <div class="r-card stat"><strong>{{ stats.total_score }}</strong><span>total points</span></div>
+        <div class="r-card stat"><strong>{{ stats.perfect }}</strong><span>perfect 100s</span></div>
+    </div>
+
+    <div class="row g-4 mt-1">
+        <div class="col-lg-8">
+            <div class="r-card mb-4">
+                <span class="eyebrow">Last 12 weeks</span>
+                <div class="heat heat-84 mt-2">
+                    {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %} · {{ day.kind }}{% endif %}"></span>{% endfor %}
+                </div>
+                <div class="heat-legend muted small"><span class="heat-cell heat-solved"></span> solved <span class="heat-cell heat-recovered"></span> recovered <span class="heat-cell heat-frozen"></span> freeze</div>
+            </div>
+
+            <div class="r-card mb-4">
+                <span class="eyebrow">Results</span>
+                {% if entries %}
+                <table class="r-table compact mt-2">
+                    <thead><tr><th>Challenge</th><th>Lang</th><th class="num">Attempts</th><th class="num">Time</th><th class="num">Score</th></tr></thead>
+                    <tbody>
+                    {% for e in entries %}
+                    <tr>
+                        <td><a href="{{ e.challenge.get_absolute_url }}">{{ e.challenge.title }}</a><div class="muted small">{{ e.challenge.release_date|date:"M j" }}{% if e.team %} · {{ e.team.name }}{% endif %}{% if e.is_practice %} · practice{% endif %}</div></td>
+                        <td>{{ e.language|lang_label }}</td>
+                        <td class="num">{{ e.failed_attempts|add:1 }}</td>
+                        <td class="num muted">{{ e.solve_seconds|duration }}</td>
+                        <td class="num"><strong>{{ e.score|floatformat:1 }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}<div class="empty">No solves yet.</div>{% endif %}
+            </div>
+
+            <div class="r-card">
+                <span class="eyebrow">Past solutions</span>
+                {% for s in solutions %}
+                <details class="solution-item">
+                    <summary>{{ s.participation.challenge.title }} <span class="pill">{{ s.language|lang_label }}</span> <span class="muted small">{{ s.created_at|date:"M j" }}{% if s.shared %} · shared{% endif %}</span></summary>
+                    <pre class="md-pre"><code>{{ s.code }}</code></pre>
+                </details>
+                {% empty %}<div class="empty">{% if is_me %}Your accepted solutions will be listed here.{% else %}Nothing to show yet.{% endif %}</div>{% endfor %}
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="r-card mb-4">
+                <span class="eyebrow">Languages</span>
+                {% for l in stats.languages %}
+                <div class="lang-row"><span>{{ l.language|lang_label }}</span><span class="muted small">{{ l.count }}</span></div>
+                <div class="bar"><span style="width: {{ l.pct }}%"></span></div>
+                {% empty %}<div class="empty">—</div>{% endfor %}
+            </div>
+            <div class="r-card mb-4">
+                <span class="eyebrow">Badges</span>
+                <div class="badge-grid mt-2">
+                    {% for b in badges %}
+                    <div class="badge-item {% if not b.earned %}locked{% endif %}" title="{{ b.description }}">
+                        <span class="badge-icon">{{ b.icon }}</span><span class="badge-name">{{ b.name }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="r-card">
+                <span class="eyebrow">Team history</span>
+                <ul class="plain-list mt-2">
+                    {% for m in memberships %}
+                    <li><a href="{{ m.team.get_absolute_url }}">{{ m.team.name }}</a> <span class="muted small">{{ m.joined_at|date:"M j, Y" }} – {% if m.active %}now{% else %}{{ m.left_at|date:"M j, Y" }}{% endif %}</span></li>
+                    {% empty %}<li class="muted">Solo so far.</li>{% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

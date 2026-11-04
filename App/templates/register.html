@@ -1,11 +1,17 @@
 {% extends 'base.html' %}
-
+{% block title %}Join{% endblock %}
 {% block content %}
-<section class="hero">  
-    <div class="hero-content">
-        <h1>Welcome to ReCode</h1>
-        <p>This is the register page.</p>
+<section class="auth-wrap">
+    <div class="r-card auth-card">
+        <h1>Join ReCode</h1>
+        <p class="muted">One problem a day. Keep the streak alive.</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% for error in form.non_field_errors %}<div class="flash flash-error">{{ error }}</div>{% endfor %}
+            {% for field in form %}{% include '_field.html' %}{% endfor %}
+            <button class="btn-r btn-r-primary w-100" type="submit">Create account</button>
+        </form>
+        <p class="muted small mt-3 mb-0">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
     </div>
 </section>
-    
 {% endblock %}

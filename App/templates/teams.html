@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load recode %}
+{% block title %}Teams{% endblock %}
+{% block content %}
+<div class="page">
+    <div class="page-head">
+        <div>
+            <span class="eyebrow">Teams</span>
+            <h1>Better together</h1>
+            <p class="muted mb-0">Teams of up to {{ max_size }} share one entry per challenge, a chat, private challenges and their own leaderboard.</p>
+        </div>
+    </div>
+
+    {% for invite in invites %}
+    <div class="flash flash-info">
+        <span><strong>{{ invite.invited_by.profile.name }}</strong> invited you to <strong>{{ invite.team.name }}</strong>.</span>
+        <span class="d-flex gap-2">
+            <form method="post" action="{% url 'invite_respond' invite.pk 'accept' %}">{% csrf_token %}<button class="btn-r btn-r-sm btn-r-primary">Accept</button></form>
+            <form method="post" action="{% url 'invite_respond' invite.pk 'decline' %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'teams' %}"><button class="btn-r btn-r-sm btn-r-ghost">Decline</button></form>
+        </span>
+    </div>
+    {% endfor %}
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            {% if my_team %}
+            <div class="r-card">
+                <span class="eyebrow">Your team</span>
+                <h3 class="mt-1"><a href="{{ my_team.get_absolute_url }}">{{ my_team.name }}</a></h3>
+                <div class="avatars my-2">{% for m in my_team.active_members %}<span class="avatar" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
+                <a class="btn-r btn-r-primary btn-r-sm" href="{{ my_team.get_absolute_url }}">Open team &rarr;</a>
+            </div>
+            {% elif user.is_authenticated %}
+            <div class="r-card mb-3">
+                <span class="eyebrow">Create a team</span>
+                <form method="post" action="{% url 'team_create' %}" class="mt-2">
+                    {% csrf_token %}
+                    {% for field in form %}{% include '_field.html' %}{% endfor %}
+                    <button class="btn-r btn-r-primary w-100">Create team</button>
+                </form>
+            </div>
+            <div class="r-card">
+                <span class="eyebrow">Have an invite code?</span>
+                <form method="post" action="{% url 'team_join' %}" class="d-flex gap-2 mt-2">
+                    {% csrf_token %}
+                    <input name="code" class="form-control" placeholder="e.g. a1B2c3D4" required aria-label="Invite code">
+                    <button class="btn-r btn-r-ghost">Join</button>
+                </form>
+            </div>
+            {% else %}
+            <div class="r-card"><a href="{% url 'login' %}?next={% url 'teams' %}">Log in</a> to create or join a team.</div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-8">
+            <form method="get" class="mb-3"><input type="search" name="q" value="{{ query }}" class="form-control" placeholder="Search teams" aria-label="Search teams"></form>
+            <div class="r-card p-0">
+                <table class="r-table">
+                    <thead><tr><th>Team</th><th class="num">Members</th><th class="num">Solved</th><th class="num">All-time score</th></tr></thead>
+                    <tbody>
+                    {% for r in team_rows %}
+                    <tr>
+                        <td><a href="{{ r.team.get_absolute_url }}"><strong>{{ r.team.name }}</strong></a><div class="muted small">{{ r.team.description|default:"" }}</div></td>
+                        <td class="num">{{ r.members }}/{{ max_size }}</td>
+                        <td class="num">{{ r.row.solved|default:0 }}</td>
+                        <td class="num">{{ r.row.score|default:0 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4"><div class="empty">No teams yet — start the first one.</div></td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

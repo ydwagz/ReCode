@@ -1,31 +1,89 @@
 {% extends 'base.html' %}
-
+{% load recode %}
+{% block title %}Leaderboard{% endblock %}
 {% block content %}
-<section class="hero">
-    <div class="hero-content">
-        <div class="leaderboard-container">
-            <h2>Leaderboard</h2>
-            <table class="leaderboard-table">
-                <thead>
-                    <tr>
-                        <th>Place</th>
-                        <th>Name</th>
-                        <th>Score</th>
-                    </tr>
-                </thead>
-                <tbody>
-                     {% for player in players %}
-                    <tr>
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ player.name }}</td>
-                        <td>{{ player.score }}</td>
-                        
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="page">
+    <div class="page-head">
+        <div>
+            <span class="eyebrow">Leaderboards {% if period == 'daily' %}<span class="live-dot">live</span>{% endif %}</span>
+            <h1>{{ periods|get_item:period }}</h1>
+            <p class="muted mb-0">
+                {% if period == 'daily' %}<a href="{{ challenge.get_absolute_url }}">{{ challenge.title }}</a> · closes in <span class="mono" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
+                {% elif period == 'weekly' %}Sum of scores since Monday (UTC).
+                {% else %}Every ranked solve, ever.{% endif %}
+            </p>
         </div>
+        {% if me %}
+        <div class="r-card my-rank">
+            <span class="eyebrow">You</span>
+            <strong>#{{ me.rank }}</strong>
+            <span class="muted small">{{ me.score }} pts</span>
+        </div>
+        {% endif %}
     </div>
-</section>
 
+    <form class="filter-bar mb-3" method="get" id="lb-filters">
+        <div class="seg">
+            {% for key, label in periods.items %}<label class="{% if key == period %}active{% endif %}"><input type="radio" name="period" value="{{ key }}" {% if key == period %}checked{% endif %} onchange="this.form.submit()">{{ label }}</label>{% endfor %}
+        </div>
+        <div class="seg">
+            {% for key, label in scopes.items %}<label class="{% if key == scope %}active{% endif %}"><input type="radio" name="scope" value="{{ key }}" {% if key == scope %}checked{% endif %} onchange="this.form.submit()">{{ label }}</label>{% endfor %}
+        </div>
+        <select name="language" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Language">
+            <option value="">All languages</option>
+            {% for lang in languages %}<option value="{{ lang }}" {% if lang == language %}selected{% endif %}>{{ lang|lang_label }}</option>{% endfor %}
+        </select>
+        <input type="search" name="q" value="{{ search }}" class="form-control form-control-sm" placeholder="Search players or teams" aria-label="Search">
+    </form>
+
+    <div class="leaderboard-container">
+        <table class="leaderboard-table">
+            <thead>
+                <tr><th>Place</th><th>Name</th><th class="num">Solved</th><th class="num">Time</th><th class="num">Score</th></tr>
+            </thead>
+            <tbody id="lb-body">
+            {% for row in rows %}
+                <tr class="{% if row.rank <= 3 %}podium podium-{{ row.rank }}{% endif %} {% if row.kind == 'player' and row.key == user.username %}row-me{% endif %}">
+                    <td class="rank">{% if row.rank == 1 %}🥇{% elif row.rank == 2 %}🥈{% elif row.rank == 3 %}🥉{% else %}{{ row.rank }}{% endif %}</td>
+                    <td>
+                        {% if row.kind == 'team' %}<a href="{% url 'team_detail' row.key %}">{{ row.name }}</a> <span class="pill pill-team">team</span>
+                        {% else %}<a href="{% url 'public_profile' row.key %}">{{ row.name }}</a>{% endif %}
+                    </td>
+                    <td class="num">{{ row.solved }}</td>
+                    <td class="num muted">{{ row.seconds|duration }}</td>
+                    <td class="num"><strong>{{ row.score }}</strong></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="5"><div class="empty">No ranked solves yet{% if search %} matching “{{ search }}”{% endif %}.</div></td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p class="muted small mt-2">Ranked by total score, then by total solve time. Practice solves (after the deadline) aren't ranked. <span id="lb-updated"></span></p>
+</div>
+{% endblock %}
+{% block extra_js %}
+{% if period == 'daily' %}
+<script>
+(function () {
+  const me = "{{ user.username|escapejs }}";
+  const medal = (r) => ({1: "🥇", 2: "🥈", 3: "🥉"}[r] || r);
+  async function refresh() {
+    const params = new URLSearchParams(new FormData(document.getElementById("lb-filters")));
+    const res = await ReCode.getJSON("{% url 'leaderboard_data' %}?" + params);
+    if (!res.ok || !res.rows.length) return;
+    const esc = ReCode.escapeHTML;
+    document.getElementById("lb-body").innerHTML = res.rows.map((r) => {
+      const link = r.kind === "team" ? "/teams/" + encodeURIComponent(r.key) + "/" : "/u/" + encodeURIComponent(r.key) + "/";
+      const cls = (r.rank <= 3 ? "podium podium-" + r.rank : "") + (r.kind === "player" && r.key === me ? " row-me" : "");
+      return "<tr class='" + cls + "'><td class='rank'>" + medal(r.rank) + "</td><td><a href='" + link + "'>" + esc(r.name) + "</a>" +
+        (r.kind === "team" ? " <span class='pill pill-team'>team</span>" : "") + "</td><td class='num'>" + r.solved +
+        "</td><td class='num muted'>" + ReCode.fmtDuration(r.seconds) + "</td><td class='num'><strong>" + r.score + "</strong></td></tr>";
+    }).join("");
+    document.getElementById("lb-updated").textContent = "Updated " + new Date(res.updated).toLocaleTimeString() + ".";
+  }
+  setInterval(refresh, 10000);
+})();
+</script>
+{% endif %}
 {% endblock %}

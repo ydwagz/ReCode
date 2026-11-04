@@ -1,0 +1,28 @@
+{
+  "name": "recode",
+  "displayName": "ReCode",
+  "description": "Pull, run and submit the ReCode daily challenge without leaving VS Code.",
+  "version": "1.0.0",
+  "publisher": "recode",
+  "license": "MIT",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Education", "Other"],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "recode.setToken", "title": "ReCode: Set API Token" },
+      { "command": "recode.pull", "title": "ReCode: Pull Today's Challenge" },
+      { "command": "recode.run", "title": "ReCode: Run Examples" },
+      { "command": "recode.submit", "title": "ReCode: Submit Current File" },
+      { "command": "recode.status", "title": "ReCode: Show My Streak" }
+    ],
+    "configuration": {
+      "title": "ReCode",
+      "properties": {
+        "recode.serverUrl": { "type": "string", "default": "http://127.0.0.1:8000", "description": "Your ReCode server." },
+        "recode.language": { "type": "string", "enum": ["python", "javascript"], "default": "python", "description": "Language for pulled starter files." }
+      }
+    }
+  }
+}

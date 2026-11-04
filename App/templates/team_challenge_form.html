@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}New private challenge{% endblock %}
+{% block content %}
+<div class="page page-narrow">
+    <a class="link-arrow small" href="{{ team.get_absolute_url }}">&larr; {{ team.name }}</a>
+    <div class="page-head mt-2">
+        <div>
+            <span class="eyebrow">Private group challenge</span>
+            <h1>Challenge your team</h1>
+            <p class="muted mb-0">Only members of {{ team.name }} can see it. Expected outputs are computed from your reference solution, and it gets its own private leaderboard.</p>
+        </div>
+    </div>
+    <form method="post" class="r-card" novalidate>
+        {% csrf_token %}
+        {% for error in form.non_field_errors %}<div class="flash flash-error">{{ error }}</div>{% endfor %}
+        <div class="row">
+            <div class="col-md-8">{% include '_field.html' with field=form.title %}</div>
+            <div class="col-md-4">{% include '_field.html' with field=form.difficulty %}</div>
+        </div>
+        {% include '_field.html' with field=form.release_date %}
+        {% include '_field.html' with field=form.description %}
+        <div class="row">
+            <div class="col-md-6">{% include '_field.html' with field=form.function_name %}</div>
+            <div class="col-md-6">{% include '_field.html' with field=form.params %}</div>
+        </div>
+        {% include '_field.html' with field=form.reference_python %}
+        {% include '_field.html' with field=form.examples %}
+        {% include '_field.html' with field=form.hidden %}
+        {% include '_field.html' with field=form.hints %}
+        <button class="btn-r btn-r-primary">Create challenge</button>
+    </form>
+</div>
+{% endblock %}

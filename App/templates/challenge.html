@@ -1,0 +1,350 @@
+{% extends 'base.html' %}
+{% load recode %}
+{% block title %}{{ challenge.title }}{% endblock %}
+{% block body_class %}page-challenge{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="challenge-layout">
+    <!-- Problem column -->
+    <section class="problem-pane">
+        <div class="problem-head">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
+                {% if challenge.team %}<span class="pill pill-team">Private · {{ challenge.team.name }}</span>{% endif %}
+                <span class="muted small">{{ challenge.release_date|date:"D, M j Y" }}</span>
+            </div>
+            <h1>{{ challenge.title }}</h1>
+            <div class="deadline">
+                {% if challenge.is_open %}
+                    ⏱ Closes in <strong class="mono" data-countdown="{{ challenge.closes_at.isoformat }}" data-done-text="closed — refresh">--:--:--</strong>
+                {% elif recoverable %}
+                    🧯 Closed — solving it today <strong>recovers your streak</strong> (practice score, not ranked).
+                {% else %}
+                    🔒 Closed — practice mode (not ranked).
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="statement" role="tab">Problem</button>
+            <button class="tab" data-tab="hints" role="tab">Hints <span class="tab-count">{{ hints|length }}/{{ total_hints }}</span></button>
+            <button class="tab" data-tab="history" role="tab">Submissions</button>
+            {% if challenge.is_closed %}<button class="tab" data-tab="explanation" role="tab">Explanation</button>{% endif %}
+        </div>
+
+        <div class="tab-panel active" id="tab-statement">
+            <div class="statement">{{ challenge.description|simple_md }}</div>
+            <h4 class="section-label">Signature</h4>
+            <pre class="md-pre"><code id="signature">{{ challenge.function_name }}({{ challenge.params }})</code></pre>
+            <h4 class="section-label">Examples</h4>
+            {% for t in examples %}
+            <div class="example">
+                <div><span class="muted">Input</span> <code>{% format_args t.args challenge.params %}</code></div>
+                <div><span class="muted">Output</span> <code>{{ t.expected|as_json|truncatechars:300 }}</code></div>
+            </div>
+            {% endfor %}
+            {% if challenge.constraints %}
+            <h4 class="section-label">Constraints</h4>
+            <pre class="constraints">{{ challenge.constraints }}</pre>
+            {% endif %}
+            <p class="muted small mt-3">Hidden tests (including a large performance input) run when you submit.</p>
+            <div class="d-flex gap-3 mt-3 flex-wrap">
+                <a class="link-arrow" id="discussion" href="{% url 'challenge_discussion' challenge.slug %}">💬 Discussion ({{ comment_count }})</a>
+                <a class="link-arrow" href="{% url 'solutions' challenge.slug %}">🖼 Solution gallery {% if not challenge.is_closed %}(unlocks at close){% endif %}</a>
+            </div>
+        </div>
+
+        <div class="tab-panel" id="tab-hints">
+            <p class="muted small">Hints are progressive. The first one is free; the rest cost points from your final score.</p>
+            <ol class="hint-list" id="hint-list">
+                {% for h in hints %}<li><div>{{ h.text|simple_md }}</div>{% if h.cost %}<span class="muted small">−{{ h.cost }} pts</span>{% else %}<span class="muted small">free</span>{% endif %}</li>{% endfor %}
+            </ol>
+            {% if user.is_authenticated and not entry.solved %}
+            <button class="btn-r btn-r-ghost" id="hint-btn" {% if not next_hint %}disabled{% endif %}>
+                {% if next_hint %}Reveal hint {{ next_hint.order }} {% if next_hint.cost %}(−{{ next_hint.cost }} pts){% else %}(free){% endif %}{% else %}No more hints{% endif %}
+            </button>
+            {% endif %}
+        </div>
+
+        <div class="tab-panel" id="tab-history">
+            {% if history %}
+            <table class="r-table compact">
+                <thead><tr><th>When</th><th>Who</th><th>Lang</th><th>Result</th><th class="num">Tests</th><th></th></tr></thead>
+                <tbody>
+                {% for s in history %}
+                <tr>
+                    <td class="muted small">{{ s.created_at|date:"H:i:s" }}</td>
+                    <td>{{ s.user.profile.name }}{% if s.via_api %} <span class="pill">IDE</span>{% endif %}</td>
+                    <td>{{ s.language|lang_label }}</td>
+                    <td><span class="status status-{{ s.status }}">{{ s.get_status_display }}</span></td>
+                    <td class="num">{{ s.passed_count }}/{{ s.total_count }}</td>
+                    <td>
+                        {% if s.status == 'accepted' and s.user == user %}
+                        <form method="post" action="{% url 'submission_share' s.pk %}">{% csrf_token %}
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button class="btn-r btn-r-sm btn-r-ghost">{% if s.shared %}Unshare{% else %}Share{% endif %}</button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            {% else %}<div class="empty">No submissions yet.</div>{% endif %}
+        </div>
+
+        {% if challenge.is_closed %}
+        <div class="tab-panel" id="tab-explanation">
+            <div class="statement">{{ challenge.explanation|default:"No explanation was written for this challenge."|simple_md }}</div>
+            <h4 class="section-label">Reference solution</h4>
+            <pre class="md-pre"><code>{{ challenge.reference_python }}</code></pre>
+            {% if total_hints %}
+            <h4 class="section-label">All hints</h4>
+            <ol>{% for h in challenge.hints.all %}<li>{{ h.text|simple_md }}</li>{% endfor %}</ol>
+            {% endif %}
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Editor column -->
+    <section class="editor-pane">
+        {% if not user.is_authenticated %}
+            <div class="r-card text-center p-5">
+                <h3>Log in to play</h3>
+                <p class="muted">Track your score, streak and rank.</p>
+                <a class="btn-r btn-r-primary" href="{% url 'login' %}?next={{ request.path }}">Log in</a>
+                <a class="btn-r btn-r-ghost" href="{% url 'register' %}">Sign up</a>
+            </div>
+        {% elif not entry %}
+            <div class="r-card start-card">
+                <h3>Ready?</h3>
+                <p class="muted">Your speed clock starts when you press start.</p>
+                <form method="post" action="{% url 'challenge_start' challenge.slug %}" class="start-options">
+                    {% csrf_token %}
+                    <button class="mode-option" name="mode" value="solo">
+                        <span class="mode-icon">🧑‍💻</span><strong>Solo</strong><span class="muted small">Ranked as you</span>
+                    </button>
+                    {% if team %}
+                    <button class="mode-option" name="mode" value="team">
+                        <span class="mode-icon">🤝</span><strong>Team · {{ team.name }}</strong><span class="muted small">One shared entry for up to 5</span>
+                    </button>
+                    {% else %}
+                    <a class="mode-option disabled" href="{% url 'teams' %}">
+                        <span class="mode-icon">🤝</span><strong>Team</strong><span class="muted small">Create or join a team first</span>
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        {% else %}
+            <div class="editor-toolbar">
+                <div class="d-flex gap-2 align-items-center">
+                    <select id="language" class="form-select form-select-sm" aria-label="Language">
+                        {% for lang in languages %}<option value="{{ lang }}" {% if lang == default_language %}selected{% endif %}>{{ lang|lang_label }}</option>{% endfor %}
+                    </select>
+                    <button class="btn-r btn-r-sm btn-r-ghost" id="reset-btn" title="Reset to starter code">Reset</button>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="muted small">{% if entry.team %}🤝 {{ entry.team.name }}{% else %}🧑‍💻 Solo{% endif %} · started {{ entry.started_at|date:"H:i" }} UTC</span>
+                </div>
+            </div>
+            <textarea id="code"></textarea>
+            <div class="editor-actions">
+                <span class="muted small" id="attempts-label">{{ entry.failed_attempts }} failed attempt{{ entry.failed_attempts|pluralize }}</span>
+                <div class="d-flex gap-2">
+                    <button class="btn-r btn-r-ghost" id="run-btn" title="Ctrl/⌘ + '">▶ Run examples</button>
+                    <button class="btn-r btn-r-primary" id="submit-btn" title="Ctrl/⌘ + Enter" {% if entry.solved %}disabled{% endif %}>{% if entry.solved %}Solved ✓{% else %}Submit{% endif %}</button>
+                </div>
+            </div>
+
+            <div class="r-card console" id="console">
+                {% if entry.solved %}
+                <div class="result-head ok">Accepted · {{ entry.score|floatformat:1 }} / 100{% if entry.is_practice %} (practice){% endif %}</div>
+                <div class="score-parts">
+                    <span>Correct <b>{{ entry.correctness_points|floatformat:0 }}</b></span>
+                    <span>Attempts <b>{{ entry.attempt_points|floatformat:1 }}</b></span>
+                    <span>Speed <b>{{ entry.speed_points|floatformat:1 }}</b></span>
+                    <span>Efficiency <b>{{ entry.efficiency_points|floatformat:1 }}</b></span>
+                    {% if entry.hint_penalty %}<span>Hints <b>−{{ entry.hint_penalty|floatformat:0 }}</b></span>{% endif %}
+                </div>
+                <p class="muted small mt-2 mb-0">Solved in {{ entry.solve_seconds|duration }}. Share your solution from the Submissions tab — it appears in the gallery after the deadline.</p>
+                {% else %}
+                <div class="muted">Run your code against the examples, then submit when you're confident. Failed submissions cost attempt points; runs are free.</div>
+                {% endif %}
+            </div>
+
+            <div class="r-card team-progress" id="team-progress" {% if not entry.team %}hidden{% endif %}>
+                <div class="card-title-row"><span class="eyebrow">Live team progress</span><span class="live-dot">live</span></div>
+                <ul id="team-members"></ul>
+            </div>
+        {% endif %}
+    </section>
+</div>
+
+{{ starter|json_script:"starter-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+<script>
+(function () {
+  const { postJSON, getJSON, escapeHTML, fmtDuration } = window.ReCode;
+  const slug = "{{ challenge.slug|escapejs }}";
+  const base = "/challenges/" + slug + "/";
+
+  // Tabs
+  document.querySelectorAll(".tab").forEach((tab) => tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab, .tab-panel").forEach((el) => el.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+  }));
+
+  // Hints
+  const hintBtn = document.getElementById("hint-btn");
+  if (hintBtn) hintBtn.addEventListener("click", async () => {
+    if (!confirm(hintBtn.textContent.includes("pts") ? "Reveal this hint? It costs points from your final score." : "Reveal the free hint?")) return;
+    const res = await postJSON(base + "hint/");
+    if (!res.ok) return alert(res.error);
+    const li = document.createElement("li");
+    li.innerHTML = "<div>" + escapeHTML(res.hint.text) + "</div><span class='muted small'>" + (res.hint.cost ? "−" + res.hint.cost + " pts" : "free") + "</span>";
+    document.getElementById("hint-list").appendChild(li);
+    if (res.remaining) hintBtn.textContent = "Reveal next hint (−" + res.next_cost + " pts)";
+    else { hintBtn.textContent = "No more hints"; hintBtn.disabled = true; }
+  });
+
+  const textarea = document.getElementById("code");
+  if (!textarea) return;
+
+  // Editor
+  const starter = JSON.parse(document.getElementById("starter-data").textContent);
+  const langSelect = document.getElementById("language");
+  const storeKey = (lang) => "recode:" + slug + ":" + lang;
+  const load = (lang) => { try { return localStorage.getItem(storeKey(lang)) || starter[lang]; } catch (e) { return starter[lang]; } };
+  // If the CodeMirror CDN can't load (offline, blocked), fall back to a plain textarea with the same API.
+  const fallbackEditor = (ta) => {
+    ta.classList.add("plain-editor");
+    ta.spellcheck = false;
+    ta.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") { e.preventDefault(); ta.setRangeText("    ", ta.selectionStart, ta.selectionEnd, "end"); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); submit(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === "'") { e.preventDefault(); run(); }
+    });
+    return {
+      getValue: () => ta.value,
+      setValue: (v) => { ta.value = v; ta.dispatchEvent(new Event("input")); },
+      setOption: () => {},
+      on: (_, fn) => ta.addEventListener("input", fn),
+    };
+  };
+  const editor = typeof CodeMirror === "undefined" ? fallbackEditor(textarea) : CodeMirror.fromTextArea(textarea, {
+    lineNumbers: true, theme: "dracula", indentUnit: 4, tabSize: 4, matchBrackets: true, autoCloseBrackets: true,
+    mode: langSelect.value === "javascript" ? "javascript" : "python",
+    extraKeys: {
+      Tab: (cm) => cm.somethingSelected() ? cm.indentSelection("add") : cm.replaceSelection(" ".repeat(cm.getOption("indentUnit"))),
+      "Ctrl-Enter": () => submit(), "Cmd-Enter": () => submit(),
+      "Ctrl-'": () => run(), "Cmd-'": () => run(),
+    },
+  });
+  editor.setValue(load(langSelect.value));
+  editor.on("change", () => { try { localStorage.setItem(storeKey(langSelect.value), editor.getValue()); } catch (e) {} });
+  langSelect.addEventListener("change", () => {
+    editor.setOption("mode", langSelect.value === "javascript" ? "javascript" : "python");
+    editor.setOption("indentUnit", langSelect.value === "javascript" ? 2 : 4);
+    editor.setValue(load(langSelect.value));
+  });
+  document.getElementById("reset-btn").addEventListener("click", () => {
+    if (confirm("Replace your code with the starter template?")) editor.setValue(starter[langSelect.value]);
+  });
+
+  const consoleEl = document.getElementById("console");
+  const runBtn = document.getElementById("run-btn");
+  const submitBtn = document.getElementById("submit-btn");
+
+  function renderResult(res, title) {
+    if (!res.ok) { consoleEl.innerHTML = "<div class='result-head bad'>" + escapeHTML(res.error) + "</div>"; return; }
+    const r = res.result;
+    const labels = { accepted: "All tests passed", wrong: "Wrong answer", error: "Error", timeout: "Time limit exceeded" };
+    let html = "<div class='result-head " + (r.status === "accepted" ? "ok" : "bad") + "'>" + title + ": " + labels[r.status] +
+      (r.total ? " · " + r.passed + "/" + r.total + " tests" : "") + (r.total ? " · " + r.runtime_ms + " ms" : "") + "</div>";
+    if (res.entry && res.entry.solved) {
+      const b = res.entry.breakdown;
+      html += "<div class='score-big-sm'>" + res.entry.score.toFixed(1) + " / 100" + (res.entry.practice ? " <span class='muted small'>(practice)</span>" : "") + "</div>" +
+        "<div class='score-parts'><span>Correct <b>" + b.correctness + "</b></span><span>Attempts <b>" + b.attempts + "</b></span>" +
+        "<span>Speed <b>" + b.speed + "</b></span><span>Efficiency <b>" + b.efficiency + "</b></span>" +
+        (b.hint_penalty ? "<span>Hints <b>−" + b.hint_penalty + "</b></span>" : "") + "</div>" +
+        "<p class='muted small mt-2'>Solved in " + fmtDuration(res.entry.solve_seconds) + ". 🎉 Refresh to share your solution.</p>";
+      submitBtn.disabled = true; submitBtn.textContent = "Solved ✓";
+    } else if (res.entry) {
+      document.getElementById("attempts-label").textContent = res.entry.failed_attempts + " failed attempt" + (res.entry.failed_attempts === 1 ? "" : "s");
+    }
+    if (r.error) html += "<pre class='console-error'>" + escapeHTML(r.error) + "</pre>";
+    if (r.cases && r.cases.length) {
+      html += "<ol class='case-list'>";
+      r.cases.forEach((c, i) => {
+        html += "<li class='" + (c.passed ? "pass" : "fail") + "'><span>" + (c.passed ? "✓" : "✗") + " Test " + (i + 1) + "</span>";
+        if (c.expected !== null && !c.passed) {
+          html += "<div class='case-detail'>" + (c.error ? "<span class='bad'>" + escapeHTML(c.error) + "</span>" :
+            "got <code>" + escapeHTML(JSON.stringify(c.got)) + "</code> expected <code>" + escapeHTML(JSON.stringify(c.expected)) + "</code>") + "</div>";
+        } else if (c.expected === null && !c.passed) {
+          html += "<div class='case-detail muted'>hidden test" + (c.error ? " · " + escapeHTML(c.error) : "") + "</div>";
+        }
+        if (c.stdout) html += "<pre class='stdout'>" + escapeHTML(c.stdout) + "</pre>";
+        html += "</li>";
+      });
+      html += "</ol>";
+    }
+    if (r.stdout) html += "<pre class='stdout'>" + escapeHTML(r.stdout) + "</pre>";
+    consoleEl.innerHTML = html;
+  }
+
+  async function withBusy(btn, label, fn) {
+    if (btn.disabled) return;
+    const old = btn.textContent;
+    btn.disabled = true; btn.textContent = label;
+    try { await fn(); } finally { if (btn.textContent === label) { btn.textContent = old; btn.disabled = false; } }
+  }
+
+  function run() {
+    return withBusy(runBtn, "Running…", async () => {
+      consoleEl.innerHTML = "<div class='muted'>Running examples…</div>";
+      renderResult(await postJSON(base + "run/", { code: editor.getValue(), language: langSelect.value }), "Run");
+    });
+  }
+
+  function submit() {
+    return withBusy(submitBtn, "Judging…", async () => {
+      consoleEl.innerHTML = "<div class='muted'>Running all tests…</div>";
+      renderResult(await postJSON(base + "submit/", { code: editor.getValue(), language: langSelect.value }), "Submit");
+      refreshProgress();
+    });
+  }
+
+  runBtn.addEventListener("click", run);
+  submitBtn.addEventListener("click", submit);
+
+  // Live team progress
+  const progressBox = document.getElementById("team-progress");
+  async function refreshProgress() {
+    if (progressBox.hidden) return;
+    const res = await getJSON(base + "progress/");
+    if (!res.ok) return;
+    document.getElementById("team-members").innerHTML = res.members.map((m) =>
+      "<li><span class='avatar avatar-sm'>" + escapeHTML(m.name[0].toUpperCase()) + "</span> " + escapeHTML(m.name) +
+      "<span class='muted small ms-auto'>" + m.submissions + " sub" + (m.submissions === 1 ? "" : "s") + "</span>" +
+      (m.last_status ? "<span class='status status-" + m.last_status + "'>" + m.last_status + "</span>" : "<span class='muted small'>idle</span>") + "</li>"
+    ).join("");
+    if (res.entry && res.entry.solved && !submitBtn.disabled) location.reload();
+  }
+  refreshProgress();
+  setInterval(refreshProgress, 8000);
+})();
+</script>
+{% endblock %}

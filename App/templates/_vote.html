@@ -1,0 +1,5 @@
+{% load recode %}<div class="vote-box">
+    <button class="vote-btn {% if my_votes|get_item:c.pk == 1 %}voted{% endif %}" data-vote="up" data-url="{% url 'comment_vote' c.pk %}" aria-label="Upvote" {% if not user.is_authenticated %}disabled{% endif %}>▲</button>
+    <span class="vote-score">{{ c.score }}</span>
+    <button class="vote-btn {% if my_votes|get_item:c.pk == -1 %}voted{% endif %}" data-vote="down" data-url="{% url 'comment_vote' c.pk %}" aria-label="Downvote" {% if not user.is_authenticated %}disabled{% endif %}>▼</button>
+</div>
