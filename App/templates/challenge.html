@@ -15,17 +15,17 @@
         <div class="problem-head">
             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
                 <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
-                {% if challenge.team %}<span class="pill pill-team">Private · {{ challenge.team.name }}</span>{% endif %}
-                <span class="muted small">{{ challenge.release_date|date:"D, M j Y" }}</span>
+                {% if challenge.team %}<span class="pill pill-team">Private to {{ challenge.team.name }}</span>{% endif %}
+                <span class="muted small">{{ challenge.release_date|date:"l, F j, Y" }}</span>
             </div>
             <h1>{{ challenge.title }}</h1>
             <div class="deadline">
                 {% if challenge.is_open %}
-                    ⏱ Closes in <strong class="mono" data-countdown="{{ challenge.closes_at.isoformat }}" data-done-text="closed — refresh">--:--:--</strong>
+                    Closes in <span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}" data-done-text="closed, refresh the page">--:--:--</span>
                 {% elif recoverable %}
-                    🧯 Closed — solving it today <strong>recovers your streak</strong> (practice score, not ranked).
+                    This problem has closed. Solve it today to <strong>recover your streak</strong>. The score counts as practice.
                 {% else %}
-                    🔒 Closed — practice mode (not ranked).
+                    This problem has closed. You can still solve it for practice; it won't be ranked.
                 {% endif %}
             </div>
         </div>
@@ -54,19 +54,19 @@
             {% endif %}
             <p class="muted small mt-3">Hidden tests (including a large performance input) run when you submit.</p>
             <div class="d-flex gap-3 mt-3 flex-wrap">
-                <a class="link-arrow" id="discussion" href="{% url 'challenge_discussion' challenge.slug %}">💬 Discussion ({{ comment_count }})</a>
-                <a class="link-arrow" href="{% url 'solutions' challenge.slug %}">🖼 Solution gallery {% if not challenge.is_closed %}(unlocks at close){% endif %}</a>
+                <a class="link-arrow" id="discussion" href="{% url 'challenge_discussion' challenge.slug %}">Discussion ({{ comment_count }})</a>
+                <a class="link-arrow" href="{% url 'solutions' challenge.slug %}">Shared solutions{% if not challenge.is_closed %} (open after the deadline){% endif %}</a>
             </div>
         </div>
 
         <div class="tab-panel" id="tab-hints">
             <p class="muted small">Hints are progressive. The first one is free; the rest cost points from your final score.</p>
             <ol class="hint-list" id="hint-list">
-                {% for h in hints %}<li><div>{{ h.text|simple_md }}</div>{% if h.cost %}<span class="muted small">−{{ h.cost }} pts</span>{% else %}<span class="muted small">free</span>{% endif %}</li>{% endfor %}
+                {% for h in hints %}<li><div>{{ h.text|simple_md }}</div>{% if h.cost %}<span class="muted small">−{{ h.cost }} points</span>{% else %}<span class="muted small">free</span>{% endif %}</li>{% endfor %}
             </ol>
             {% if user.is_authenticated and not entry.solved %}
             <button class="btn-r btn-r-ghost" id="hint-btn" {% if not next_hint %}disabled{% endif %}>
-                {% if next_hint %}Reveal hint {{ next_hint.order }} {% if next_hint.cost %}(−{{ next_hint.cost }} pts){% else %}(free){% endif %}{% else %}No more hints{% endif %}
+                {% if next_hint %}Show hint {{ next_hint.order }} {% if next_hint.cost %}(−{{ next_hint.cost }} points){% else %}(free){% endif %}{% else %}No more hints{% endif %}
             </button>
             {% endif %}
         </div>
@@ -79,7 +79,7 @@
                 {% for s in history %}
                 <tr>
                     <td class="muted small">{{ s.created_at|date:"H:i:s" }}</td>
-                    <td>{{ s.user.profile.name }}{% if s.via_api %} <span class="pill">IDE</span>{% endif %}</td>
+                    <td>{{ s.user.profile.name }}{% if s.via_api %} <span class="pill">Editor</span>{% endif %}</td>
                     <td>{{ s.language|lang_label }}</td>
                     <td><span class="status status-{{ s.status }}">{{ s.get_status_display }}</span></td>
                     <td class="num">{{ s.passed_count }}/{{ s.total_count }}</td>
@@ -122,20 +122,20 @@
             </div>
         {% elif not entry %}
             <div class="r-card start-card">
-                <h3>Ready?</h3>
-                <p class="muted">Your speed clock starts when you press start.</p>
+                <h3>How do you want to play?</h3>
+                <p class="muted">Your speed clock starts as soon as you choose.</p>
                 <form method="post" action="{% url 'challenge_start' challenge.slug %}" class="start-options">
                     {% csrf_token %}
                     <button class="mode-option" name="mode" value="solo">
-                        <span class="mode-icon">🧑‍💻</span><strong>Solo</strong><span class="muted small">Ranked as you</span>
+                        <strong>Solo</strong><span class="muted small">Ranked under your name</span>
                     </button>
                     {% if team %}
                     <button class="mode-option" name="mode" value="team">
-                        <span class="mode-icon">🤝</span><strong>Team · {{ team.name }}</strong><span class="muted small">One shared entry for up to 5</span>
+                        <strong>With {{ team.name }}</strong><span class="muted small">One shared entry for your team</span>
                     </button>
                     {% else %}
                     <a class="mode-option disabled" href="{% url 'teams' %}">
-                        <span class="mode-icon">🤝</span><strong>Team</strong><span class="muted small">Create or join a team first</span>
+                        <strong>With a team</strong><span class="muted small">Create or join a team first</span>
                     </a>
                     {% endif %}
                 </form>
@@ -149,36 +149,33 @@
                     <button class="btn-r btn-r-sm btn-r-ghost" id="reset-btn" title="Reset to starter code">Reset</button>
                 </div>
                 <div class="d-flex gap-2 align-items-center">
-                    <span class="muted small">{% if entry.team %}🤝 {{ entry.team.name }}{% else %}🧑‍💻 Solo{% endif %} · started {{ entry.started_at|date:"H:i" }} UTC</span>
+                    <span class="muted small">{% if entry.team %}Playing with {{ entry.team.name }}{% else %}Playing solo{% endif %}, started at {{ entry.started_at|date:"H:i" }} UTC</span>
                 </div>
             </div>
             <textarea id="code"></textarea>
             <div class="editor-actions">
                 <span class="muted small" id="attempts-label">{{ entry.failed_attempts }} failed attempt{{ entry.failed_attempts|pluralize }}</span>
                 <div class="d-flex gap-2">
-                    <button class="btn-r btn-r-ghost" id="run-btn" title="Ctrl/⌘ + '">▶ Run examples</button>
-                    <button class="btn-r btn-r-primary" id="submit-btn" title="Ctrl/⌘ + Enter" {% if entry.solved %}disabled{% endif %}>{% if entry.solved %}Solved ✓{% else %}Submit{% endif %}</button>
+                    <button class="btn-r btn-r-ghost" id="run-btn" title="Ctrl/⌘ + '">Run examples</button>
+                    <button class="btn-r btn-r-primary" id="submit-btn" title="Ctrl/⌘ + Enter" {% if entry.solved %}disabled{% endif %}>{% if entry.solved %}Solved{% else %}Submit solution{% endif %}</button>
                 </div>
             </div>
 
             <div class="r-card console" id="console">
                 {% if entry.solved %}
-                <div class="result-head ok">Accepted · {{ entry.score|floatformat:1 }} / 100{% if entry.is_practice %} (practice){% endif %}</div>
-                <div class="score-parts">
-                    <span>Correct <b>{{ entry.correctness_points|floatformat:0 }}</b></span>
-                    <span>Attempts <b>{{ entry.attempt_points|floatformat:1 }}</b></span>
-                    <span>Speed <b>{{ entry.speed_points|floatformat:1 }}</b></span>
-                    <span>Efficiency <b>{{ entry.efficiency_points|floatformat:1 }}</b></span>
-                    {% if entry.hint_penalty %}<span>Hints <b>−{{ entry.hint_penalty|floatformat:0 }}</b></span>{% endif %}
+                <div class="d-flex align-items-end gap-3 mb-3">
+                    <div class="score-total">{{ entry.score|floatformat:1 }}<span>/100</span></div>
+                    <div class="muted small pb-1">Solved in {{ entry.solve_seconds|duration }}{% if entry.is_practice %}, practice{% endif %}</div>
                 </div>
-                <p class="muted small mt-2 mb-0">Solved in {{ entry.solve_seconds|duration }}. Share your solution from the Submissions tab — it appears in the gallery after the deadline.</p>
+                {% include '_score_tiles.html' %}
+                <p class="muted small mt-3 mb-0">You can share your solution from the Submissions tab. Shared solutions appear after the deadline.</p>
                 {% else %}
-                <div class="muted">Run your code against the examples, then submit when you're confident. Failed submissions cost attempt points; runs are free.</div>
+                <div class="muted">Running the examples is free. A failed submission costs attempt points, so run first.</div>
                 {% endif %}
             </div>
 
             <div class="r-card team-progress" id="team-progress" {% if not entry.team %}hidden{% endif %}>
-                <div class="card-title-row"><span class="eyebrow">Live team progress</span><span class="live-dot">live</span></div>
+                <div class="card-title-row"><span class="eyebrow">Your team right now</span><span class="live-dot">Live</span></div>
                 <ul id="team-members"></ul>
             </div>
         {% endif %}
@@ -210,13 +207,13 @@
   // Hints
   const hintBtn = document.getElementById("hint-btn");
   if (hintBtn) hintBtn.addEventListener("click", async () => {
-    if (!confirm(hintBtn.textContent.includes("pts") ? "Reveal this hint? It costs points from your final score." : "Reveal the free hint?")) return;
+    if (!confirm(hintBtn.textContent.includes("points") ? "Show this hint? It takes points off your final score." : "Show the free hint?")) return;
     const res = await postJSON(base + "hint/");
     if (!res.ok) return alert(res.error);
     const li = document.createElement("li");
-    li.innerHTML = "<div>" + escapeHTML(res.hint.text) + "</div><span class='muted small'>" + (res.hint.cost ? "−" + res.hint.cost + " pts" : "free") + "</span>";
+    li.innerHTML = "<div>" + escapeHTML(res.hint.text) + "</div><span class='muted small'>" + (res.hint.cost ? "−" + res.hint.cost + " points" : "free") + "</span>";
     document.getElementById("hint-list").appendChild(li);
-    if (res.remaining) hintBtn.textContent = "Reveal next hint (−" + res.next_cost + " pts)";
+    if (res.remaining) hintBtn.textContent = "Show next hint (−" + res.next_cost + " points)";
     else { hintBtn.textContent = "No more hints"; hintBtn.disabled = true; }
   });
 
@@ -271,35 +268,36 @@
   function renderResult(res, title) {
     if (!res.ok) { consoleEl.innerHTML = "<div class='result-head bad'>" + escapeHTML(res.error) + "</div>"; return; }
     const r = res.result;
-    const labels = { accepted: "All tests passed", wrong: "Wrong answer", error: "Error", timeout: "Time limit exceeded" };
-    let html = "<div class='result-head " + (r.status === "accepted" ? "ok" : "bad") + "'>" + title + ": " + labels[r.status] +
-      (r.total ? " · " + r.passed + "/" + r.total + " tests" : "") + (r.total ? " · " + r.runtime_ms + " ms" : "") + "</div>";
-    if (res.entry && res.entry.solved) {
-      const b = res.entry.breakdown;
-      html += "<div class='score-big-sm'>" + res.entry.score.toFixed(1) + " / 100" + (res.entry.practice ? " <span class='muted small'>(practice)</span>" : "") + "</div>" +
-        "<div class='score-parts'><span>Correct <b>" + b.correctness + "</b></span><span>Attempts <b>" + b.attempts + "</b></span>" +
-        "<span>Speed <b>" + b.speed + "</b></span><span>Efficiency <b>" + b.efficiency + "</b></span>" +
-        (b.hint_penalty ? "<span>Hints <b>−" + b.hint_penalty + "</b></span>" : "") + "</div>" +
-        "<p class='muted small mt-2'>Solved in " + fmtDuration(res.entry.solve_seconds) + ". 🎉 Refresh to share your solution.</p>";
-      submitBtn.disabled = true; submitBtn.textContent = "Solved ✓";
-    } else if (res.entry) {
-      document.getElementById("attempts-label").textContent = res.entry.failed_attempts + " failed attempt" + (res.entry.failed_attempts === 1 ? "" : "s");
-    }
+    const labels = { accepted: "All tests passed", wrong: "Some tests failed", error: "Your code raised an error", timeout: "Too slow: time limit exceeded" };
+    let html = "<div class='result-head " + (r.status === "accepted" ? "ok" : "bad") + "'>" + labels[r.status] + "</div>" +
+      (r.total ? "<div class='muted small mb-2'>" + title + ": " + r.passed + " of " + r.total + " tests passed in " + r.runtime_ms + " ms</div>" : "");
     if (r.error) html += "<pre class='console-error'>" + escapeHTML(r.error) + "</pre>";
     if (r.cases && r.cases.length) {
-      html += "<ol class='case-list'>";
-      r.cases.forEach((c, i) => {
-        html += "<li class='" + (c.passed ? "pass" : "fail") + "'><span>" + (c.passed ? "✓" : "✗") + " Test " + (i + 1) + "</span>";
-        if (c.expected !== null && !c.passed) {
-          html += "<div class='case-detail'>" + (c.error ? "<span class='bad'>" + escapeHTML(c.error) + "</span>" :
-            "got <code>" + escapeHTML(JSON.stringify(c.got)) + "</code> expected <code>" + escapeHTML(JSON.stringify(c.expected)) + "</code>") + "</div>";
-        } else if (c.expected === null && !c.passed) {
-          html += "<div class='case-detail muted'>hidden test" + (c.error ? " · " + escapeHTML(c.error) : "") + "</div>";
-        }
-        if (c.stdout) html += "<pre class='stdout'>" + escapeHTML(c.stdout) + "</pre>";
-        html += "</li>";
-      });
-      html += "</ol>";
+      // One tile per test, Wordle style; details only for the ones that need attention.
+      html += "<ol class='case-list' aria-label='Test results'>" + r.cases.map((c, i) =>
+        "<li><span class='case-chip " + (c.passed ? "pass" : "fail") + "' title='Test " + (i + 1) + (c.passed ? " passed" : " failed") + "'>" + (i + 1) + "</span></li>"
+      ).join("") + "</ol>";
+      const details = r.cases.map((c, i) => {
+        if (c.passed && !c.stdout) return "";
+        let line = "<strong>Test " + (i + 1) + "</strong> ";
+        if (!c.passed && c.expected === null) line += "<span class='muted'>is hidden" + (c.error ? ": " + escapeHTML(c.error) : "") + "</span>";
+        else if (!c.passed && c.error) line += "<span class='bad'>" + escapeHTML(c.error) + "</span>";
+        else if (!c.passed) line += "returned <code>" + escapeHTML(JSON.stringify(c.got)) + "</code>, expected <code>" + escapeHTML(JSON.stringify(c.expected)) + "</code>";
+        else line += "<span class='muted'>passed</span>";
+        if (c.stdout) line += "<pre class='stdout'>" + escapeHTML(c.stdout) + "</pre>";
+        return "<li>" + line + "</li>";
+      }).join("");
+      if (details) html += "<ul class='case-details'>" + details + "</ul>";
+    }
+    if (res.entry && res.entry.solved) {
+      const b = res.entry.breakdown;
+      html += "<div class='d-flex align-items-end gap-3 my-3'><div class='score-total'>" + res.entry.score.toFixed(1) + "<span>/100</span></div>" +
+        "<div class='muted small pb-1'>Solved in " + fmtDuration(res.entry.solve_seconds) + (res.entry.practice ? ", practice" : "") + "</div></div>" +
+        ReCode.scoreTiles(b) + (b.hint_penalty ? "<div class='score-penalty'>−" + b.hint_penalty + " for hints</div>" : "") +
+        "<p class='muted small mt-3'>Refresh the page to share your solution.</p>";
+      submitBtn.disabled = true; submitBtn.textContent = "Solved";
+    } else if (res.entry) {
+      document.getElementById("attempts-label").textContent = res.entry.failed_attempts + " failed attempt" + (res.entry.failed_attempts === 1 ? "" : "s");
     }
     if (r.stdout) html += "<pre class='stdout'>" + escapeHTML(r.stdout) + "</pre>";
     consoleEl.innerHTML = html;

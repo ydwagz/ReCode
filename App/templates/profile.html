@@ -7,14 +7,14 @@
         <span class="avatar avatar-xl">{{ subject.profile.name|initials }}</span>
         <div>
             <h1 class="mb-1">{{ subject.profile.name }}</h1>
-            <div class="muted">@{{ subject.username }} · joined {{ subject.date_joined|date:"M Y" }}{% if subject.profile.active_team %} · <a href="{{ subject.profile.active_team.get_absolute_url }}">{{ subject.profile.active_team.name }}</a>{% endif %}</div>
+            <div class="muted">@{{ subject.username }}, joined {{ subject.date_joined|date:"F Y" }}{% if subject.profile.active_team %}, plays with <a href="{{ subject.profile.active_team.get_absolute_url }}">{{ subject.profile.active_team.name }}</a>{% endif %}</div>
             {% if subject.profile.bio %}<p class="mt-2 mb-0">{{ subject.profile.bio }}</p>{% endif %}
         </div>
         {% if is_me %}<a class="btn-r btn-r-ghost ms-auto" href="{% url 'settings' %}">Edit profile</a>{% endif %}
     </div>
 
     <div class="stat-grid">
-        <div class="r-card stat"><strong>🔥 {{ streak.current }}</strong><span>current streak</span></div>
+        <div class="r-card stat"><strong>{{ streak.current }}</strong><span>current streak</span></div>
         <div class="r-card stat"><strong>{{ streak.longest }}</strong><span>longest streak</span></div>
         <div class="r-card stat"><strong>{{ stats.solved }}</strong><span>challenges solved</span></div>
         <div class="r-card stat"><strong>{{ stats.avg_score }}</strong><span>avg score</span></div>
@@ -27,9 +27,9 @@
             <div class="r-card mb-4">
                 <span class="eyebrow">Last 12 weeks</span>
                 <div class="heat heat-84 mt-2">
-                    {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %} · {{ day.kind }}{% endif %}"></span>{% endfor %}
+                    {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %}: {{ day.kind }}{% endif %}"></span>{% endfor %}
                 </div>
-                <div class="heat-legend muted small"><span class="heat-cell heat-solved"></span> solved <span class="heat-cell heat-recovered"></span> recovered <span class="heat-cell heat-frozen"></span> freeze</div>
+                <div class="heat-legend muted small"><span><span class="heat-cell heat-solved"></span>Solved</span><span><span class="heat-cell heat-recovered"></span>Recovered</span><span><span class="heat-cell heat-frozen"></span>Freeze</span></div>
             </div>
 
             <div class="r-card mb-4">
@@ -40,7 +40,7 @@
                     <tbody>
                     {% for e in entries %}
                     <tr>
-                        <td><a href="{{ e.challenge.get_absolute_url }}">{{ e.challenge.title }}</a><div class="muted small">{{ e.challenge.release_date|date:"M j" }}{% if e.team %} · {{ e.team.name }}{% endif %}{% if e.is_practice %} · practice{% endif %}</div></td>
+                        <td><a href="{{ e.challenge.get_absolute_url }}">{{ e.challenge.title }}</a><div class="muted small">{{ e.challenge.release_date|date:"M j" }}{% if e.team %}, with {{ e.team.name }}{% endif %}{% if e.is_practice %} (practice){% endif %}</div></td>
                         <td>{{ e.language|lang_label }}</td>
                         <td class="num">{{ e.failed_attempts|add:1 }}</td>
                         <td class="num muted">{{ e.solve_seconds|duration }}</td>
@@ -56,7 +56,7 @@
                 <span class="eyebrow">Past solutions</span>
                 {% for s in solutions %}
                 <details class="solution-item">
-                    <summary>{{ s.participation.challenge.title }} <span class="pill">{{ s.language|lang_label }}</span> <span class="muted small">{{ s.created_at|date:"M j" }}{% if s.shared %} · shared{% endif %}</span></summary>
+                    <summary>{{ s.participation.challenge.title }} <span class="pill">{{ s.language|lang_label }}</span> <span class="muted small">{{ s.created_at|date:"M j" }}{% if s.shared %}, shared{% endif %}</span></summary>
                     <pre class="md-pre"><code>{{ s.code }}</code></pre>
                 </details>
                 {% empty %}<div class="empty">{% if is_me %}Your accepted solutions will be listed here.{% else %}Nothing to show yet.{% endif %}</div>{% endfor %}

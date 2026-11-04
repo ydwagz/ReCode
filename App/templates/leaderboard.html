@@ -5,19 +5,19 @@
 <div class="page">
     <div class="page-head">
         <div>
-            <span class="eyebrow">Leaderboards {% if period == 'daily' %}<span class="live-dot">live</span>{% endif %}</span>
+            <span class="eyebrow">Leaderboard {% if period == 'daily' %}<span class="live-dot">Live</span>{% endif %}</span>
             <h1>{{ periods|get_item:period }}</h1>
             <p class="muted mb-0">
-                {% if period == 'daily' %}<a href="{{ challenge.get_absolute_url }}">{{ challenge.title }}</a> · closes in <span class="mono" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
+                {% if period == 'daily' %}<a href="{{ challenge.get_absolute_url }}">{{ challenge.title }}</a> closes in <span data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
                 {% elif period == 'weekly' %}Sum of scores since Monday (UTC).
                 {% else %}Every ranked solve, ever.{% endif %}
             </p>
         </div>
         {% if me %}
         <div class="r-card my-rank">
-            <span class="eyebrow">You</span>
-            <strong>#{{ me.rank }}</strong>
-            <span class="muted small">{{ me.score }} pts</span>
+            <span class="eyebrow">Your place</span>
+            <strong>{{ me.rank }}</strong>
+            <span class="muted small">{{ me.score }} points</span>
         </div>
         {% endif %}
     </div>
@@ -44,9 +44,9 @@
             <tbody id="lb-body">
             {% for row in rows %}
                 <tr class="{% if row.rank <= 3 %}podium podium-{{ row.rank }}{% endif %} {% if row.kind == 'player' and row.key == user.username %}row-me{% endif %}">
-                    <td class="rank">{% if row.rank == 1 %}🥇{% elif row.rank == 2 %}🥈{% elif row.rank == 3 %}🥉{% else %}{{ row.rank }}{% endif %}</td>
+                    <td class="rank">{{ row.rank }}</td>
                     <td>
-                        {% if row.kind == 'team' %}<a href="{% url 'team_detail' row.key %}">{{ row.name }}</a> <span class="pill pill-team">team</span>
+                        {% if row.kind == 'team' %}<a href="{% url 'team_detail' row.key %}">{{ row.name }}</a> <span class="pill pill-team">Team</span>
                         {% else %}<a href="{% url 'public_profile' row.key %}">{{ row.name }}</a>{% endif %}
                     </td>
                     <td class="num">{{ row.solved }}</td>
@@ -67,7 +67,6 @@
 <script>
 (function () {
   const me = "{{ user.username|escapejs }}";
-  const medal = (r) => ({1: "🥇", 2: "🥈", 3: "🥉"}[r] || r);
   async function refresh() {
     const params = new URLSearchParams(new FormData(document.getElementById("lb-filters")));
     const res = await ReCode.getJSON("{% url 'leaderboard_data' %}?" + params);
@@ -76,8 +75,8 @@
     document.getElementById("lb-body").innerHTML = res.rows.map((r) => {
       const link = r.kind === "team" ? "/teams/" + encodeURIComponent(r.key) + "/" : "/u/" + encodeURIComponent(r.key) + "/";
       const cls = (r.rank <= 3 ? "podium podium-" + r.rank : "") + (r.kind === "player" && r.key === me ? " row-me" : "");
-      return "<tr class='" + cls + "'><td class='rank'>" + medal(r.rank) + "</td><td><a href='" + link + "'>" + esc(r.name) + "</a>" +
-        (r.kind === "team" ? " <span class='pill pill-team'>team</span>" : "") + "</td><td class='num'>" + r.solved +
+      return "<tr class='" + cls + "'><td class='rank'>" + r.rank + "</td><td><a href='" + link + "'>" + esc(r.name) + "</a>" +
+        (r.kind === "team" ? " <span class='pill pill-team'>Team</span>" : "") + "</td><td class='num'>" + r.solved +
         "</td><td class='num muted'>" + ReCode.fmtDuration(r.seconds) + "</td><td class='num'><strong>" + r.score + "</strong></td></tr>";
     }).join("");
     document.getElementById("lb-updated").textContent = "Updated " + new Date(res.updated).toLocaleTimeString() + ".";

@@ -227,7 +227,7 @@ class SubmissionFlowTests(TestCase):
     def test_web_endpoints(self):
         self.client.login(username="alice", password="pw-123456!")
         url = self.challenge.get_absolute_url()
-        self.assertContains(self.client.get(url), "Ready?")
+        self.assertContains(self.client.get(url), "How do you want to play?")
         self.client.post(url + "start/", {"mode": "solo"})
         run = self.client.post(url + "run/", json.dumps({"code": GOOD_TWO_SUM, "language": "python"}), content_type="application/json").json()
         self.assertEqual(run["result"]["status"], "accepted")

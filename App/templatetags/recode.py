@@ -102,3 +102,19 @@ def format_args(args, params):
             text = text[:297] + "…"
         parts.append(f"{names[i]} = {text}" if i < len(names) else text)
     return ", ".join(parts)
+
+
+@register.filter
+def score_parts(entry):
+    """The four scoring components as tiles: label, value, max, fill %, state."""
+    parts = []
+    for label, value, maximum in (
+        ("Correct", entry.correctness_points, 60),
+        ("Attempts", entry.attempt_points, 20),
+        ("Speed", entry.speed_points, 10),
+        ("Efficiency", entry.efficiency_points, 10),
+    ):
+        pct = round(100 * (value or 0) / maximum)
+        parts.append({"label": label, "value": round(value or 0, 1), "max": maximum, "pct": pct,
+                      "state": "full" if pct >= 99 else "partial" if pct > 0 else ""})
+    return parts

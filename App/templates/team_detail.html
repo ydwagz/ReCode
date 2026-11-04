@@ -11,7 +11,7 @@
         </div>
         <div class="team-kpis">
             <div><strong>{{ member_rows|length }}/{{ max_size }}</strong><span>members</span></div>
-            <div><strong>🔥 {{ streak }}</strong><span>team streak</span></div>
+            <div><strong>{{ streak }}</strong><span>day streak</span></div>
             <div><strong>{{ stats.solved }}</strong><span>solved</span></div>
             <div><strong>{{ stats.score }}</strong><span>team points</span></div>
         </div>
@@ -20,15 +20,15 @@
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="r-card mb-4">
-                <div class="card-title-row"><span class="eyebrow">Members · private leaderboard</span></div>
+                <div class="card-title-row"><span class="eyebrow">Members, ranked by points</span></div>
                 <table class="r-table compact">
-                    <thead><tr><th>#</th><th>Member</th><th class="num">Streak</th><th class="num">Solo pts</th>{% if is_owner %}<th></th>{% endif %}</tr></thead>
+                    <thead><tr><th>#</th><th>Member</th><th class="num">Streak</th><th class="num">Points</th>{% if is_owner %}<th></th>{% endif %}</tr></thead>
                     <tbody>
                     {% for m in member_rows %}
                     <tr>
                         <td class="muted">{{ forloop.counter }}</td>
                         <td><span class="avatar avatar-sm">{{ m.user.profile.name|initials }}</span> <a href="{% url 'public_profile' m.user.username %}">{{ m.user.profile.name }}</a>{% if m.is_owner %} <span class="pill">captain</span>{% endif %}</td>
-                        <td class="num">🔥 {{ m.streak.current }}</td>
+                        <td class="num">{{ m.streak.current }}</td>
                         <td class="num">{{ m.row.score|default:0 }}</td>
                         {% if is_owner %}<td class="text-end">{% if not m.is_owner %}
                             <form method="post" action="{% url 'team_kick' team.slug m.user.username %}" onsubmit="return confirm('Remove {{ m.user.username|escapejs }} from the team?')">{% csrf_token %}<button class="btn-r btn-r-sm btn-r-ghost">Remove</button></form>
@@ -48,10 +48,10 @@
                 {% if private %}
                 <ul class="plain-list">
                     {% for c in private %}
-                    <li><a href="{{ c.get_absolute_url }}">{{ c.title }}</a> <span class="pill pill-{{ c.difficulty }}">{{ c.get_difficulty_display }}</span> <span class="muted small">{{ c.release_date|date:"M j" }}{% if c.release_date > today %} · upcoming{% elif c.is_open %} · live{% endif %}</span></li>
+                    <li><a href="{{ c.get_absolute_url }}">{{ c.title }}</a> <span class="pill pill-{{ c.difficulty }}">{{ c.get_difficulty_display }}</span> <span class="muted small">{{ c.release_date|date:"M j" }}{% if c.release_date > today %} (upcoming){% elif c.is_open %} (open now){% endif %}</span></li>
                     {% endfor %}
                 </ul>
-                {% else %}<div class="empty">Write a problem for your teammates — it gets its own private leaderboard.</div>{% endif %}
+                {% else %}<div class="empty">Write a problem for your teammates. It gets its own private leaderboard.</div>{% endif %}
             </div>
             {% endif %}
 
@@ -65,18 +65,18 @@
                     {% endfor %}
                     </tbody>
                 </table>
-                {% else %}<div class="empty">No team solves yet. Pick “Team” mode on a challenge to play together.</div>{% endif %}
+                {% else %}<div class="empty">No team solves yet. Choose "With your team" when you start a problem.</div>{% endif %}
             </div>
         </div>
 
         <div class="col-lg-5">
             {% if is_member %}
             <div class="r-card chat-card mb-4">
-                <div class="card-title-row"><span class="eyebrow">Team chat</span><span class="live-dot">live</span></div>
+                <div class="card-title-row"><span class="eyebrow">Team chat</span><span class="live-dot">Live</span></div>
                 <div class="chat-log" id="chat-log">
                     {% for m in messages_list %}
                     <div class="chat-msg {% if m.author == user %}mine{% endif %}" data-id="{{ m.pk }}"><span class="chat-author">{{ m.author.profile.name }}</span><span class="chat-body">{{ m.body }}</span><span class="chat-time">{{ m.created_at|date:"H:i" }}</span></div>
-                    {% empty %}<div class="empty" id="chat-empty">Say hi to your team 👋</div>{% endfor %}
+                    {% empty %}<div class="empty" id="chat-empty">No messages yet. Say hi to your team.</div>{% endfor %}
                 </div>
                 <form id="chat-form" class="d-flex gap-2 mt-2">
                     <input id="chat-input" class="form-control" maxlength="1000" placeholder="Message {{ team.name }}" autocomplete="off" aria-label="Message">

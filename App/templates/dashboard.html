@@ -6,12 +6,12 @@
 <div class="page">
     <div class="page-head">
         <div>
-            <span class="eyebrow">{% now "l, F j" %} · UTC</span>
-            <h1>Hey {{ user.profile.name }} 👋</h1>
+            <span class="eyebrow">{% now "l, F j" %}</span>
+            <h1>Hi, {{ user.profile.name }}</h1>
         </div>
         <div class="head-actions">
             <a class="btn-r btn-r-ghost" href="{% url 'leaderboard' %}">Leaderboards</a>
-            <a class="btn-r btn-r-primary" href="{{ challenge.get_absolute_url }}">{% if entry.solved %}Review today's{% elif entry %}Continue{% else %}Start today's challenge{% endif %} &rarr;</a>
+            <a class="btn-r btn-r-primary" href="{{ challenge.get_absolute_url }}">{% if entry.solved %}Review today's problem{% elif entry %}Continue solving{% else %}Start today's problem{% endif %}</a>
         </div>
     </div>
 
@@ -27,7 +27,7 @@
 
     {% if yesterday and streak.state == 'recoverable' %}
     <div class="flash flash-warning">
-        <span>🧯 You missed yesterday. Solve <strong>{{ yesterday.title }}</strong> before midnight UTC to recover your streak{% if streak.freezes %} — or a freeze will cover it when you solve today{% endif %}.</span>
+        <span>You missed yesterday. Solve <strong>{{ yesterday.title }}</strong> before midnight UTC to recover your streak{% if streak.freezes %} — or a freeze will cover it when you solve today{% endif %}.</span>
         <a class="btn-r btn-r-sm btn-r-primary" href="{{ yesterday.get_absolute_url }}">Recover</a>
     </div>
     {% endif %}
@@ -36,36 +36,30 @@
         <div class="r-card today-panel">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
-                    <span class="eyebrow">Today's challenge</span>
+                    <span class="eyebrow">Today's problem</span>
                     <h2 class="mt-1">{{ challenge.title }}</h2>
                 </div>
                 <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
             </div>
             <div class="today-stats">
-                <div><span class="label">Closes in</span><strong class="mono" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</strong></div>
+                <div><span class="label">Closes in</span><strong data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</strong></div>
                 <div><span class="label">Status</span>
-                    <strong>{% if entry.solved %}<span class="ok">Solved ✓</span>{% elif entry %}In progress · {{ entry.failed_attempts }} failed{% else %}Not started{% endif %}</strong>
+                    <strong>{% if entry.solved %}<span class="ok">Solved</span>{% elif entry %}In progress, {{ entry.failed_attempts }} failed{% else %}Not started{% endif %}</strong>
                 </div>
-                <div><span class="label">Mode</span><strong>{% if entry.team %}Team · {{ entry.team.name }}{% elif entry %}Solo{% else %}—{% endif %}</strong></div>
-                <div><span class="label">Your rank</span><strong>{% if my_rank %}#{{ my_rank.rank }} <span class="muted">/ {{ field_size }}</span>{% else %}—{% endif %}</strong></div>
+                <div><span class="label">Mode</span><strong>{% if entry.team %}Team {{ entry.team.name }}{% elif entry %}Solo{% else %}—{% endif %}</strong></div>
+                <div><span class="label">Your rank</span><strong>{% if my_rank %}{{ my_rank.rank }} <span class="muted">of {{ field_size }}</span>{% else %}—{% endif %}</strong></div>
             </div>
             {% if entry.solved %}
             <div class="score-strip">
-                <div class="score-big">{{ entry.score|floatformat:1 }}<span>/100</span></div>
-                <div class="score-parts">
-                    <span>Correct <b>{{ entry.correctness_points|floatformat:0 }}</b></span>
-                    <span>Attempts <b>{{ entry.attempt_points|floatformat:1 }}</b></span>
-                    <span>Speed <b>{{ entry.speed_points|floatformat:1 }}</b></span>
-                    <span>Efficiency <b>{{ entry.efficiency_points|floatformat:1 }}</b></span>
-                    {% if entry.hint_penalty %}<span>Hints <b>−{{ entry.hint_penalty|floatformat:0 }}</b></span>{% endif %}
-                </div>
+                <div class="score-total">{{ entry.score|floatformat:1 }}<span>/100</span></div>
+                <div>{% include '_score_tiles.html' %}</div>
             </div>
             {% endif %}
         </div>
 
         <div class="r-card streak-panel">
             <span class="eyebrow">Your streak</span>
-            <div class="streak-number">🔥 {{ streak.current }}<span> day{{ streak.current|pluralize }}</span></div>
+            <div class="streak-number">{{ streak.current }}<span> day{{ streak.current|pluralize }}</span></div>
             <p class="muted small mb-2">
                 {% if streak.state == 'active' %}Locked in for today. See you tomorrow.
                 {% elif streak.state == 'pending' %}Solve today to keep it going.
@@ -74,23 +68,24 @@
                 {% else %}Solve today's challenge to start a streak.{% endif %}
             </p>
             <div class="streak-meta">
-                <span title="Freezes automatically cover missed days">🧊 {{ streak.freezes }} freeze{{ streak.freezes|pluralize }}</span>
-                <span>🏆 best {{ streak.longest }}</span>
-                {% if team %}<span>🤝 team {{ team_streak }}</span>{% endif %}
+                <span title="Freezes automatically cover missed days">{{ streak.freezes }} freeze{{ streak.freezes|pluralize }} left</span>
+                <span>Best: {{ streak.longest }}</span>
+                {% if team %}<span>Team: {{ team_streak }}</span>{% endif %}
             </div>
             <div class="heat heat-28">
-                {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %} · {{ day.kind }}{% endif %}"></span>{% endfor %}
+                {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %}: {{ day.kind }}{% endif %}"></span>{% endfor %}
             </div>
+            <div class="heat-legend muted small"><span><span class="heat-cell heat-solved"></span>Solved</span><span><span class="heat-cell heat-recovered"></span>Recovered</span><span><span class="heat-cell heat-frozen"></span>Freeze</span></div>
         </div>
 
         <div class="r-card">
-            <div class="card-title-row"><span class="eyebrow">Recent results</span><a href="{% url 'profile' %}" class="link-arrow small">Profile &rarr;</a></div>
+            <div class="card-title-row"><span class="eyebrow">Recent results</span><a href="{% url 'profile' %}" class="small">All results</a></div>
             {% if recent %}
             <table class="r-table compact">
                 <tbody>
                 {% for e in recent %}
                 <tr>
-                    <td><a href="{{ e.challenge.get_absolute_url }}">{{ e.challenge.title }}</a><div class="muted small">{{ e.challenge.release_date|date:"M j" }}{% if e.team %} · {{ e.team.name }}{% endif %}{% if e.is_practice %} · practice{% endif %}</div></td>
+                    <td><a href="{{ e.challenge.get_absolute_url }}">{{ e.challenge.title }}</a><div class="muted small">{{ e.challenge.release_date|date:"M j" }}{% if e.team %}, with {{ e.team.name }}{% endif %}{% if e.is_practice %} (practice){% endif %}</div></td>
                     <td class="num">{{ e.score|floatformat:1 }}</td>
                     <td class="num muted">{{ e.solve_seconds|duration }}</td>
                 </tr>
@@ -105,10 +100,10 @@
             {% if team %}
             <h3 class="mt-1"><a href="{{ team.get_absolute_url }}">{{ team.name }}</a></h3>
             <div class="avatars my-2">{% for m in team.active_members %}<span class="avatar" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
-            <p class="muted small mb-2">{{ team.member_count }}/5 members · 🔥 {{ team_streak }} day team streak</p>
-            <a class="btn-r btn-r-sm btn-r-ghost" href="{{ team.get_absolute_url }}">Open team chat &rarr;</a>
+            <p class="muted small mb-3">{{ team.member_count }} of 5 members, {{ team_streak }} day team streak</p>
+            <a class="btn-r btn-r-sm btn-r-ghost" href="{{ team.get_absolute_url }}">Open team</a>
             {% else %}
-            <p class="muted">Compete together — teams of up to 5 share one entry per challenge.</p>
+            <p class="muted">Teams of up to 5 share one entry per challenge.</p>
             <a class="btn-r btn-r-sm btn-r-primary" href="{% url 'teams' %}">Create or join a team</a>
             {% endif %}
         </div>
@@ -120,16 +115,17 @@
                 <li><span>{{ day.date|date:"D, M j" }}</span><span class="pill pill-{{ day.difficulty }}">{{ day.difficulty|title }}</span></li>
                 {% endfor %}
             </ul>
-            <p class="muted small mb-0">Titles stay secret until 00:00 UTC.</p>
+            <p class="muted small mb-0">Titles stay hidden until 00:00 UTC.</p>
         </div>
 
         <div class="r-card quick-card">
-            <span class="eyebrow">Quick actions</span>
+            <div><span class="eyebrow">Shortcuts</span>
             <div class="quick-actions">
-                <a href="{% url 'challenge_list' %}">📚 Practice the archive</a>
-                <a href="{% url 'community' %}">💬 Community feed</a>
-                <a href="{{ challenge.get_absolute_url }}#discussion">🧵 Today's discussion</a>
-                <a href="{% url 'settings' %}#integrations">🧩 Connect your IDE</a>
+                <a href="{% url 'challenge_list' %}">Practice past problems</a>
+                <a href="{% url 'challenge_discussion' challenge.slug %}">Today's discussion</a>
+                <a href="{% url 'community' %}">Community</a>
+                <a href="{% url 'settings' %}#integrations">Connect your editor</a>
+            </div>
             </div>
             <div class="mini-stats">
                 <div><strong>{{ stats.solved }}</strong><span>solved</span></div>

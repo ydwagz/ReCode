@@ -5,9 +5,8 @@
 <div class="page">
     <div class="page-head">
         <div>
-            <span class="eyebrow">Community</span>
-            <h1>What's happening</h1>
-            <p class="muted mb-0">Live solves, discussion threads, and solution galleries for closed challenges.</p>
+            <h1>Community</h1>
+            <p class="muted mb-0">Who's solving what, what people are saying, and shared solutions for problems that have closed.</p>
         </div>
         <a class="btn-r btn-r-primary" href="{% url 'challenge_discussion' challenge.slug %}">Discuss today's challenge</a>
     </div>
@@ -15,20 +14,20 @@
     <div class="row g-4">
         <div class="col-lg-7">
             <div class="r-card">
-                <span class="eyebrow">Feed</span>
+                <span class="eyebrow">Latest activity</span>
                 <ul class="feed">
                 {% for a in activity %}
                     <li class="feed-item">
                         {% if a.kind == 'solve' %}
-                        <span class="feed-icon">✅</span>
+                        <span class="feed-icon solve" aria-hidden="true">{{ a.score|floatformat:0 }}</span>
                         <div>
-                            <a href="{{ a.url }}"><strong>{{ a.who }}</strong></a>{% if a.is_team %} <span class="pill pill-team">team</span>{% endif %}
+                            <a href="{{ a.url }}"><strong>{{ a.who }}</strong></a>{% if a.is_team %} <span class="pill pill-team">Team</span>{% endif %}
                             solved <a href="{{ a.challenge.get_absolute_url }}">{{ a.challenge.title }}</a>
                             in {{ a.seconds|duration }} for <strong>{{ a.score|floatformat:1 }}</strong> pts
                             <div class="muted small">{{ a.ago }} ago</div>
                         </div>
                         {% else %}
-                        <span class="feed-icon">💬</span>
+                        <span class="feed-icon" aria-hidden="true">“</span>
                         <div>
                             <a href="{{ a.url }}"><strong>{{ a.who }}</strong></a> commented on
                             <a href="{% url 'challenge_discussion' a.challenge.slug %}#c{{ a.comment_id }}">{{ a.challenge.title }}</a>
@@ -38,17 +37,17 @@
                         {% endif %}
                     </li>
                 {% empty %}
-                    <li class="empty">Quiet so far today.</li>
+                    <li class="empty">Nothing yet today. Solve the problem and you'll be first here.</li>
                 {% endfor %}
                 </ul>
             </div>
         </div>
         <div class="col-lg-5">
             <div class="r-card mb-4">
-                <span class="eyebrow">Hot comments</span>
+                <span class="eyebrow">Top comments</span>
                 <ul class="plain-list mt-2">
                     {% for c in hot %}
-                    <li><span class="pill">▲ {{ c.score }}</span> <a href="{% url 'challenge_discussion' c.challenge.slug %}#c{{ c.pk }}">{{ c.body|truncatechars:80 }}</a><div class="muted small">{{ c.author.profile.name }} on {{ c.challenge.title }}</div></li>
+                    <li><span class="pill">+{{ c.score }}</span> <a href="{% url 'challenge_discussion' c.challenge.slug %}#c{{ c.pk }}">{{ c.body|truncatechars:80 }}</a><div class="muted small">{{ c.author.profile.name }} on {{ c.challenge.title }}</div></li>
                     {% empty %}<li class="muted">No comments yet.</li>{% endfor %}
                 </ul>
             </div>
@@ -56,12 +55,12 @@
                 <span class="eyebrow">Discussion threads</span>
                 <ul class="plain-list mt-2">
                     {% for c in threads %}
-                    <li class="d-flex justify-content-between"><a href="{% url 'challenge_discussion' c.slug %}">{{ c.title }} <span class="muted small">{{ c.release_date|date:"M j" }}</span></a><span class="muted small">{{ c.n_comments }} 💬</span></li>
+                    <li class="d-flex justify-content-between"><a href="{% url 'challenge_discussion' c.slug %}">{{ c.title }} <span class="muted small">{{ c.release_date|date:"M j" }}</span></a><span class="muted small">{{ c.n_comments }} comment{{ c.n_comments|pluralize }}</span></li>
                     {% endfor %}
                 </ul>
             </div>
             <div class="r-card">
-                <span class="eyebrow">Solution galleries</span>
+                <span class="eyebrow">Shared solutions</span>
                 <ul class="plain-list mt-2">
                     {% for c in galleries %}
                     <li class="d-flex justify-content-between"><a href="{% url 'solutions' c.slug %}">{{ c.title }} <span class="muted small">{{ c.release_date|date:"M j" }}</span></a><span class="muted small">{{ c.n_shared }} shared</span></li>

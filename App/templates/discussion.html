@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load recode %}
-{% block title %}Discuss · {{ challenge.title }}{% endblock %}
+{% block title %}{{ challenge.title }} discussion{% endblock %}
 {% block content %}
 <div class="page page-narrow">
-    <a class="link-arrow small" href="{{ challenge.get_absolute_url }}">&larr; Back to {{ challenge.title }}</a>
+    <a class="link-arrow small" href="{{ challenge.get_absolute_url }}">Back to {{ challenge.title }}</a>
     <div class="page-head mt-2">
         <div>
             <span class="eyebrow">Discussion</span>
@@ -27,13 +27,13 @@
         <article class="comment" id="c{{ comment.pk }}">
             {% include '_vote.html' with c=comment %}
             <div class="comment-body">
-                <div class="comment-meta"><a href="{% url 'public_profile' comment.author.username %}">{{ comment.author.profile.name }}</a> · {{ comment.created_at|timesince }} ago</div>
+                <div class="comment-meta"><a href="{% url 'public_profile' comment.author.username %}">{{ comment.author.profile.name }}</a> <span>{{ comment.created_at|timesince }} ago</span></div>
                 <div>{{ comment.body|simple_md }}</div>
                 {% for reply in comment.replies.all %}
                 <article class="comment reply" id="c{{ reply.pk }}">
                     {% include '_vote.html' with c=reply %}
                     <div class="comment-body">
-                        <div class="comment-meta"><a href="{% url 'public_profile' reply.author.username %}">{{ reply.author.profile.name }}</a> · {{ reply.created_at|timesince }} ago</div>
+                        <div class="comment-meta"><a href="{% url 'public_profile' reply.author.username %}">{{ reply.author.profile.name }}</a> <span>{{ reply.created_at|timesince }} ago</span></div>
                         <div>{{ reply.body|simple_md }}</div>
                     </div>
                 </article>
