@@ -1,6 +1,7 @@
 """E-mail verification with 6-digit one-time codes."""
 
 import hashlib
+import logging
 import hmac
 import secrets
 
@@ -10,7 +11,14 @@ from django.utils import timezone
 
 from .models import EmailCode
 
+log = logging.getLogger("recode")
+
+
+class SendFailed(Exception):
+    """The code could not be e-mailed (bad SMTP settings, server down...)."""
+
 CODE_LENGTH = 6
+SEND_FAILED_MESSAGE = "We couldn't send the code. Press Resend code to try again."
 
 
 def _hash(user, code):
@@ -33,13 +41,18 @@ def send_code(user, *, force=False):
         return wait
     code = f"{secrets.randbelow(10 ** CODE_LENGTH):0{CODE_LENGTH}d}"
     user.email_codes.filter(used=False).update(used=True)  # only the newest code works
-    EmailCode.objects.create(user=user, email=user.email, code_hash=_hash(user, code))
-    send_mail(
-        subject=f"{code} is your ReCode code",
-        message=f"Your ReCode verification code is {code}\n\nIt expires in 15 minutes.",
-        from_email=None,
-        recipient_list=[user.email],
-    )
+    entry = EmailCode.objects.create(user=user, email=user.email, code_hash=_hash(user, code))
+    try:
+        send_mail(
+            subject=f"{code} is your ReCode code",
+            message=f"Your ReCode verification code is {code}\n\nIt expires in 15 minutes.",
+            from_email=None,
+            recipient_list=[user.email],
+        )
+    except Exception as exc:
+        entry.delete()  # so "Resend" works straight away
+        log.exception("Could not send verification email to %s", user.email)
+        raise SendFailed(str(exc)) from exc
     return 0
 
 

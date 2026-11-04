@@ -448,3 +448,46 @@ class EmailVerificationTests(TestCase):
         self.assertFalse(self.user.profile.email_verified)
         self.assertEqual(self.mail.outbox[-1].to, ["new@example.com"])
         self.assertRedirects(self.client.get("/dashboard/"), "/verify/")
+
+
+class RegistrationIsAtomicTests(TestCase):
+    """A crash part-way through sign-up must not leave a half-made account behind."""
+
+    data = {"username": "giorgi", "email": "g@example.com", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"}
+
+    def test_failed_signup_leaves_no_account(self):
+        from django.db import OperationalError
+
+        self.client.raise_request_exception = False
+        with mock.patch("App.signals.Profile.objects.get_or_create", side_effect=OperationalError("no such column")):
+            self.client.post("/register/", self.data)
+        self.assertFalse(User.objects.filter(username="giorgi").exists())
+        response = self.client.post("/register/", self.data)
+        self.assertRedirects(response, "/verify/")
+
+    def test_email_failure_keeps_account_and_explains(self):
+        with mock.patch("App.verification.send_mail", side_effect=OSError("smtp down")), self.assertLogs("recode", "ERROR"):
+            response = self.client.post("/register/", self.data, follow=True)
+        self.assertTrue(User.objects.filter(username="giorgi").exists())
+        self.assertContains(response, "couldn&#x27;t send")
+
+    def test_cleanup_removes_only_broken_signups(self):
+        from App.signups import remove_broken_signups
+
+        good = make_user("good", password="x")
+        broken = User.objects.create(username="broken", email="b@example.com")
+        broken.profile.delete()
+        self.assertEqual(remove_broken_signups(User), 1)
+        self.assertTrue(User.objects.filter(pk=good.pk).exists())
+        self.assertFalse(User.objects.filter(pk=broken.pk).exists())
+
+
+class MissingMigrationMessageTests(TestCase):
+    @override_settings(DEBUG=True)
+    def test_explains_how_to_fix(self):
+        from django.db import OperationalError
+
+        self.client.raise_request_exception = False
+        with mock.patch("App.views.accounts.RegisterForm.is_valid", side_effect=OperationalError("no such column: x")):
+            response = self.client.post("/register/", {"username": "a"})
+        self.assertContains(response, "python manage.py migrate", status_code=500)

@@ -39,8 +39,11 @@ def verify_email(request):
         messages.error(request, MESSAGES[state])
         return redirect("verify_email")
 
-    if not user.email_codes.filter(used=False).exists():
-        verification.send_code(user)
+    if not user.email_codes.filter(used=False).exists() and not verification.seconds_until_resend(user):
+        try:
+            verification.send_code(user)
+        except verification.SendFailed:
+            messages.error(request, verification.SEND_FAILED_MESSAGE)
     return render(request, "verify.html", {
         "masked": verification.mask_email(user.email),
         "length": verification.CODE_LENGTH,
@@ -53,7 +56,11 @@ def verify_email(request):
 @login_required
 @require_POST
 def resend_code(request):
-    wait = verification.send_code(request.user)
+    try:
+        wait = verification.send_code(request.user)
+    except verification.SendFailed:
+        messages.error(request, verification.SEND_FAILED_MESSAGE)
+        return redirect("verify_email")
     if wait:
         messages.info(request, f"Wait {wait}s before sending another code.")
     else:
@@ -75,6 +82,10 @@ def change_email(request):
         return redirect("verify_email")
     request.user.email = email
     request.user.save(update_fields=["email"])
-    verification.send_code(request.user, force=True)
-    messages.success(request, "Code sent to your new address.")
+    try:
+        verification.send_code(request.user, force=True)
+    except verification.SendFailed:
+        messages.error(request, verification.SEND_FAILED_MESSAGE)
+    else:
+        messages.success(request, "Code sent to your new address.")
     return redirect("verify_email")

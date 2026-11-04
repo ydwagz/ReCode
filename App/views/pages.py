@@ -122,7 +122,10 @@ def settings_view(request):
             if section == "password":
                 update_session_auth_hash(request, saved)
             if section == "account" and not profile.email_verified:
-                verification.send_code(request.user, force=True)
+                try:
+                    verification.send_code(request.user, force=True)
+                except verification.SendFailed:
+                    messages.error(request, verification.SEND_FAILED_MESSAGE)
                 return redirect("verify_email")
             messages.success(request, "Saved.")
             return redirect(f"/settings/#{section}")
