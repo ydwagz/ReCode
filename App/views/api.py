@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from .. import runner, services, streaks
 from ..models import Challenge, Profile
-from .helpers import json_body, json_error, serialize_entry, serialize_run
+from .helpers import json_body, json_error, json_errors, serialize_entry, serialize_run
 
 
 def token_required(view):
@@ -93,6 +93,7 @@ def _resolve(request, data):
 
 @token_required
 @require_POST
+@json_errors
 def api_run(request):
     data = json_body(request)
     challenge = _resolve(request, data)
@@ -107,6 +108,7 @@ def api_run(request):
 
 @token_required
 @require_POST
+@json_errors
 def api_submit(request):
     data = json_body(request)
     challenge = _resolve(request, data)

@@ -1,6 +1,26 @@
 import json
+import logging
+from functools import wraps
 
 from django.http import JsonResponse
+
+log = logging.getLogger("recode")
+
+
+def json_errors(view):
+    """Turn unexpected crashes in JSON endpoints into a readable error (the traceback goes to the server log)."""
+
+    @wraps(view)
+    def wrapper(request, *args, **kwargs):
+        try:
+            return view(request, *args, **kwargs)
+        except Exception as exc:  # noqa: BLE001
+            if exc.__class__.__name__ in ("Http404", "PermissionDenied"):
+                raise
+            log.exception("Unhandled error in %s", request.path)
+            return JsonResponse({"ok": False, "error": f"The judge crashed: {type(exc).__name__}: {exc}. Check the server console."}, status=500)
+
+    return wrapper
 
 
 def json_body(request):
