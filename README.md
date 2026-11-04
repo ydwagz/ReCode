@@ -6,7 +6,7 @@ ReCode is a daily competitive coding platform. Every day at 00:00 UTC a new prob
 
 ```bash
 pip install -r requirements.txt
-python manage.py migrate
+python manage.py migrate                # creates your local db.sqlite3 (not tracked by git)
 python manage.py seed_challenges        # schedule challenges for the past 14 and next 7 days
 python manage.py seed_demo              # optional: 20 demo players, 3 teams, results and comments
 python manage.py createsuperuser        # optional: for /admin/

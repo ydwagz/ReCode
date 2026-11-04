@@ -6,3 +6,6 @@ venv/
 staticfiles/
 node_modules/
 *.vsix
+
+# Local database: each developer keeps their own (run migrate + seed_challenges)
+db.sqlite3
