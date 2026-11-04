@@ -8,7 +8,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
 from .. import leaderboards, services, streaks, verification
-from ..forms import AccountForm, PreferencesForm, WebhookForm
+from ..forms import EmailForm, PreferencesForm, ProfileForm, WebhookForm
 from ..models import Challenge, StreakDay, Submission, new_token, utc_today
 
 User = get_user_model()
@@ -105,7 +105,8 @@ def settings_view(request):
     profile = request.user.profile
     section = request.POST.get("section", "")
     forms = {
-        "account": AccountForm(request.POST if section == "account" else None, instance=profile, prefix="account"),
+        "profile": ProfileForm(request.POST if section == "profile" else None, instance=profile, prefix="profile"),
+        "email": EmailForm(request.POST if section == "email" else None, user=request.user, prefix="email"),
         "preferences": PreferencesForm(request.POST if section == "preferences" else None, instance=profile, prefix="prefs"),
         "webhook": WebhookForm(request.POST if section == "webhook" else None, instance=profile, prefix="hook"),
         "password": PasswordChangeForm(request.user, request.POST if section == "password" else None, prefix="pw"),
@@ -121,7 +122,7 @@ def settings_view(request):
             saved = form.save()
             if section == "password":
                 update_session_auth_hash(request, saved)
-            if section == "account" and not profile.email_verified:
+            if section == "email" and saved:
                 try:
                     verification.send_code(request.user, force=True)
                 except verification.SendFailed:
@@ -129,9 +130,10 @@ def settings_view(request):
                 return redirect("verify_email")
             messages.success(request, "Saved.")
             return redirect(f"/settings/#{section}")
-        messages.error(request, "Please fix the errors below.")
+        messages.error(request, "Check the highlighted field.")
     return render(request, "settings.html", {
         **forms,
+        "error_section": section if request.method == "POST" else "",
         "token": profile.api_token,
         "api_base": request.build_absolute_uri("/api/v1/"),
     })

@@ -56,6 +56,9 @@ class Command(BaseCommand):
         users = {}
         for name in NAMES:
             user, created = User.objects.get_or_create(username=name)
+            if not user.email:  # sign-in codes for demo players appear in the runserver console
+                user.email = f"{name}@demo.recode.local"
+                user.save(update_fields=["email"])
             if created:
                 user.set_password(DEMO_PASSWORD)
                 user.save()

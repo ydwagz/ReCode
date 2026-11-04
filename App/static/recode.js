@@ -81,15 +81,87 @@
     });
   });
 
-  // Theme toggle: follows the system until the person picks one.
+  const reduceMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const html = document.documentElement;
+
+  // ---------------------------------------------------------------- loading
+  // The loader only becomes visible if a page takes longer than ~250ms (CSS delay),
+  // so fast navigations never flash it.
+  const doneLoading = () => html.classList.remove("is-loading", "is-navigating");
+  doneLoading();
+  window.addEventListener("pageshow", doneLoading);  // back/forward cache
+
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[href]");
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const url = new URL(link.href, location.href);
+    if (link.target || link.hasAttribute("download") || url.origin !== location.origin) return;
+    if (url.pathname === location.pathname && url.search === location.search && url.hash) return;  // in-page anchor
+    if (link.getAttribute("href").startsWith("#") || link.dataset.bsToggle) return;
+    html.classList.add("is-navigating");
+  });
+
+  // Normal (non-JS) form submits: show the loader and a busy state on the button pressed.
+  document.addEventListener("submit", (event) => {
+    if (event.defaultPrevented) return;
+    const form = event.target;
+    if (form.dataset.noLoader !== undefined) return;
+    const button = event.submitter;
+    if (button) {
+      button.classList.add("is-busy");
+      setTimeout(() => (button.disabled = true), 0);  // after the browser has read its value
+    }
+    html.classList.add("is-navigating");
+  });
+
+  // ------------------------------------------------------------ count-ups
+  // Big numbers count up from zero the first time they scroll into view.
+  function countUp(el) {
+    const node = [...el.childNodes].find((n) => n.nodeType === 3 && /\d/.test(n.textContent));
+    if (!node) return;
+    const match = node.textContent.match(/-?\d+(\.\d+)?/);
+    if (!match) return;
+    const target = parseFloat(match[0]);
+    const decimals = match[1] ? match[1].length - 1 : 0;
+    const before = node.textContent.slice(0, match.index), after = node.textContent.slice(match.index + match[0].length);
+    const start = performance.now(), duration = 900;
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      node.textContent = before + (target * eased).toFixed(decimals) + after;
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+  if (!reduceMotion() && "IntersectionObserver" in window) {
+    const seen = new IntersectionObserver((entries) => entries.forEach((entry) => {
+      if (entry.isIntersecting) { countUp(entry.target); seen.unobserve(entry.target); }
+    }), { threshold: 0.4 });
+    document.querySelectorAll(".score-total, .streak-number, .stat strong, .mini-stats strong, .team-kpis strong, .my-rank strong, .points-table .pts, .score-tile .value")
+      .forEach((el) => seen.observe(el));
+  }
+
+  // ------------------------------------------------------------ flash messages
+  document.querySelectorAll(".flash-success, .flash-info").forEach((flash) => {
+    setTimeout(() => { flash.classList.add("is-leaving"); setTimeout(() => flash.remove(), 400); }, 5000);
+  });
+
+  // ------------------------------------------------------------ theme
+  // Follows the system until the person picks one; the new theme ripples out from the button.
   const toggle = document.getElementById("theme-toggle");
   if (toggle) toggle.addEventListener("click", () => {
-    const root = document.documentElement;
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const current = root.dataset.theme || (systemDark ? "dark" : "light");
+    const current = html.dataset.theme || (systemDark ? "dark" : "light");
     const next = current === "dark" ? "light" : "dark";
-    root.dataset.theme = next;
-    try { localStorage.setItem("recode-theme", next); } catch (e) {}
+    const apply = () => {
+      html.dataset.theme = next;
+      try { localStorage.setItem("recode-theme", next); } catch (e) {}
+    };
+    if (!document.startViewTransition || reduceMotion()) return apply();
+    const rect = toggle.getBoundingClientRect();
+    html.style.setProperty("--vt-x", rect.left + rect.width / 2 + "px");
+    html.style.setProperty("--vt-y", rect.top + rect.height / 2 + "px");
+    document.startViewTransition(apply);
   });
 
   // Score breakdown as four tiles (used by the challenge page after a submit).

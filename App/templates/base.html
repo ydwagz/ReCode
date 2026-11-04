@@ -1,5 +1,5 @@
 {% load static %}<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="is-loading">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,6 +17,12 @@
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
+
+<div class="page-loader" id="page-loader" role="status" aria-live="polite">
+    <div class="loader-tiles" aria-hidden="true"><span>R</span><span>E</span><span>C</span><span>O</span><span>D</span><span>E</span></div>
+    <span class="visually-hidden">Loading</span>
+</div>
+<div class="top-progress" aria-hidden="true"></div>
 
 <nav class="navbar navbar-expand-lg recode-navbar">
     <div class="container">

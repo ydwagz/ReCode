@@ -43,7 +43,7 @@
             </thead>
             <tbody id="lb-body">
             {% for row in rows %}
-                <tr class="{% if row.rank <= 3 %}podium podium-{{ row.rank }}{% endif %} {% if row.kind == 'player' and row.key == user.username %}row-me{% endif %}">
+                <tr class="{% if row.rank <= 3 %}podium podium-{{ row.rank }}{% endif %} {% if row.kind == 'player' and row.key == user.username %}row-me{% endif %}" data-key="{{ row.kind }}:{{ row.key }}" data-sig="{{ row.rank }}|{{ row.score }}">
                     <td class="rank">{{ row.rank }}</td>
                     <td>
                         {% if row.kind == 'team' %}<a href="{% url 'team_detail' row.key %}">{{ row.name }}</a> <span class="pill pill-team">Team</span>
@@ -72,10 +72,16 @@
     const res = await ReCode.getJSON("{% url 'leaderboard_data' %}?" + params);
     if (!res.ok || !res.rows.length) return;
     const esc = ReCode.escapeHTML;
-    document.getElementById("lb-body").innerHTML = res.rows.map((r) => {
+    const body = document.getElementById("lb-body");
+    body.classList.add("live");  // re-renders shouldn't replay the entrance cascade
+    const before = {};
+    body.querySelectorAll("tr[data-key]").forEach((tr) => (before[tr.dataset.key] = tr.dataset.sig));
+    body.innerHTML = res.rows.map((r) => {
       const link = r.kind === "team" ? "/teams/" + encodeURIComponent(r.key) + "/" : "/u/" + encodeURIComponent(r.key) + "/";
-      const cls = (r.rank <= 3 ? "podium podium-" + r.rank : "") + (r.kind === "player" && r.key === me ? " row-me" : "");
-      return "<tr class='" + cls + "'><td class='rank'>" + r.rank + "</td><td><a href='" + link + "'>" + esc(r.name) + "</a>" +
+      const key = r.kind + ":" + r.key, sig = r.rank + "|" + r.score;
+      const changed = key in before ? before[key] !== sig : Object.keys(before).length > 0;
+      const cls = (r.rank <= 3 ? "podium podium-" + r.rank : "") + (r.kind === "player" && r.key === me ? " row-me" : "") + (changed ? " changed" : "");
+      return "<tr class='" + cls + "' data-key='" + esc(key) + "' data-sig='" + sig + "'><td class='rank'>" + r.rank + "</td><td><a href='" + link + "'>" + esc(r.name) + "</a>" +
         (r.kind === "team" ? " <span class='pill pill-team'>Team</span>" : "") + "</td><td class='num'>" + r.solved +
         "</td><td class='num muted'>" + ReCode.fmtDuration(r.seconds) + "</td><td class='num'><strong>" + r.score + "</strong></td></tr>";
     }).join("");

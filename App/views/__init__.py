@@ -1,4 +1,4 @@
-from .accounts import login_view, logout_view, register
+from .accounts import login_add_email, login_resend, login_verify, login_view, logout_view, register
 from .api import api_challenge, api_me, api_run, api_submit, api_today
 from .challenges import (
     challenge_detail,

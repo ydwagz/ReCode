@@ -43,7 +43,7 @@ python manage.py test App
 
 ## Email verification
 
-New accounts confirm their email with a 6-digit code before they can play. In development the email is printed in the `runserver` console, so look there for the code. To send real email, set these environment variables:
+Signing up and signing in both need a 6-digit code sent to your email. Accounts without an email are asked to add one at sign-in. In development the email is printed in the `runserver` console, so look there for the code. To send real email, set these environment variables:
 
 ```bash
 RECODE_EMAIL_HOST=smtp.example.com RECODE_EMAIL_PORT=587 RECODE_EMAIL_USER=... RECODE_EMAIL_PASSWORD=... RECODE_EMAIL_FROM="ReCode <no-reply@example.com>"

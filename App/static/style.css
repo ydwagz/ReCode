@@ -1078,3 +1078,149 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 .otp[data-state="verified"] .otp-tile::after,
 .otp[data-state="wrong"] .otp-tile::after,
 .otp[data-state="expired"] .otp-tile::after { display: none; }
+
+/* ==========================================================================
+   Loading
+   ========================================================================== */
+
+/* Full-screen loader: only appears if a page takes > 250ms. */
+.page-loader {
+    position: fixed; inset: 0; z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+    background: color-mix(in srgb, var(--bg) 70%, transparent);
+    backdrop-filter: blur(10px);
+    opacity: 0; visibility: hidden;
+    transition: opacity .2s ease, visibility 0s linear .2s;
+}
+.is-loading .page-loader,
+.is-navigating .page-loader {
+    opacity: 1; visibility: visible;
+    transition: opacity .25s ease .25s, visibility 0s linear .25s;
+}
+/* Failsafe: never trap the page behind the loader. */
+.is-loading .page-loader { animation: loader-failsafe 0s linear 8s forwards; }
+@keyframes loader-failsafe { to { opacity: 0; visibility: hidden; } }
+
+.loader-tiles { display: flex; gap: 6px; perspective: 500px; }
+.loader-tiles span {
+    width: 44px; height: 52px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 8px;
+    font-family: var(--font-display); font-weight: 800; font-size: 24px;
+    background: var(--tile-off); border: 2px solid var(--tile-off-border); color: var(--text);
+    animation: loader-flip 1.8s ease-in-out infinite;
+}
+.loader-tiles span:nth-child(2) { animation-delay: .12s; }
+.loader-tiles span:nth-child(3) { animation-delay: .24s; }
+.loader-tiles span:nth-child(4) { animation-delay: .36s; }
+.loader-tiles span:nth-child(5) { animation-delay: .48s; }
+.loader-tiles span:nth-child(6) { animation-delay: .60s; }
+@keyframes loader-flip {
+    0%, 15%   { transform: rotateX(0); background: var(--tile-off); border-color: var(--tile-off-border); color: var(--text); }
+    25%       { transform: rotateX(90deg); }
+    35%, 65%  { transform: rotateX(0); background: var(--tile-ok); border-color: color-mix(in srgb, var(--tile-ok) 70%, #000); color: var(--tile-ok-ink); }
+    75%       { transform: rotateX(90deg); }
+    85%, 100% { transform: rotateX(0); background: var(--tile-off); border-color: var(--tile-off-border); color: var(--text); }
+}
+
+/* Thin progress bar along the top while navigating. */
+.top-progress {
+    position: fixed; top: 0; left: 0; z-index: 3001;
+    height: 3px; width: 0;
+    background: linear-gradient(90deg, var(--tile-ok), var(--accent), #F9A8D4);
+    opacity: 0;
+}
+.is-navigating .top-progress { opacity: 1; animation: progress 6s cubic-bezier(.1, .7, .2, 1) forwards; }
+@keyframes progress { 0% { width: 0; } 20% { width: 45%; } 100% { width: 92%; } }
+
+/* Busy buttons: label fades, three tiles bounce. */
+.btn-r.is-busy, .button.is-busy { position: relative; color: transparent !important; pointer-events: none; }
+.btn-r.is-busy::after, .button.is-busy::after {
+    content: ""; position: absolute; inset: 0; margin: auto;
+    width: 30px; height: 8px;
+    background:
+        radial-gradient(circle 4px, currentColor 95%, transparent) 0 50% / 8px 8px no-repeat,
+        radial-gradient(circle 4px, currentColor 95%, transparent) 50% 50% / 8px 8px no-repeat,
+        radial-gradient(circle 4px, currentColor 95%, transparent) 100% 50% / 8px 8px no-repeat;
+    color: var(--accent-ink);
+    animation: busy-dots .9s ease-in-out infinite;
+}
+.btn-r-ghost.is-busy::after { color: var(--text); }
+@keyframes busy-dots {
+    0%   { background-position: 0 50%, 50% 50%, 100% 50%; }
+    25%  { background-position: 0 0, 50% 50%, 100% 50%; }
+    50%  { background-position: 0 50%, 50% 0, 100% 50%; }
+    75%  { background-position: 0 50%, 50% 50%, 100% 0; }
+    100% { background-position: 0 50%, 50% 50%, 100% 50%; }
+}
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+
+@keyframes rise-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pop-in { 0% { opacity: 0; transform: scale(.4); } 70% { transform: scale(1.12); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes fill-up { from { height: 0; } }
+@keyframes slide-down { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes row-flash { 0% { background: color-mix(in srgb, var(--tile-ok) 30%, transparent); } 100% { background: transparent; } }
+
+/* Page content arrives in a short cascade, once per page. */
+.page > *, .page-head > *, .grid-dash > *, .settings-main > *, .row > [class*="col"] > * {
+    animation: rise-in .5s cubic-bezier(.2, .8, .2, 1) both;
+}
+.page > :nth-child(2), .grid-dash > :nth-child(2), .settings-main > :nth-child(2), .page-head > :nth-child(2) { animation-delay: .06s; }
+.page > :nth-child(3), .grid-dash > :nth-child(3), .settings-main > :nth-child(3) { animation-delay: .12s; }
+.page > :nth-child(4), .grid-dash > :nth-child(4), .settings-main > :nth-child(4) { animation-delay: .18s; }
+.page > :nth-child(5), .grid-dash > :nth-child(5), .settings-main > :nth-child(5) { animation-delay: .24s; }
+.page > :nth-child(n+6), .grid-dash > :nth-child(n+6), .settings-main > :nth-child(n+6) { animation-delay: .30s; }
+.auth-card { animation: rise-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+.problem-pane, .editor-pane { animation: rise-in .5s cubic-bezier(.2, .8, .2, 1) both; }
+.editor-pane { animation-delay: .08s; }
+
+/* Streak calendars fill in like a wave. */
+.heat-cell { animation: pop-in .35s cubic-bezier(.2, .8, .2, 1) both; }
+.heat-cell:nth-child(7n+1) { animation-delay: .02s; } .heat-cell:nth-child(7n+2) { animation-delay: .05s; }
+.heat-cell:nth-child(7n+3) { animation-delay: .08s; } .heat-cell:nth-child(7n+4) { animation-delay: .11s; }
+.heat-cell:nth-child(7n+5) { animation-delay: .14s; } .heat-cell:nth-child(7n+6) { animation-delay: .17s; }
+.heat-cell:nth-child(7n) { animation-delay: .20s; }
+.heat-legend .heat-cell { animation: none; }
+.heat-cell { transition: transform .12s ease; }
+.heat-cell:hover { transform: scale(1.25); }
+
+/* Score tiles fill up from the bottom. */
+.score-tile::before { animation: fill-up .9s cubic-bezier(.2, .8, .2, 1) .2s both; }
+.score-tile:nth-child(2)::before { animation-delay: .3s; }
+.score-tile:nth-child(3)::before { animation-delay: .4s; }
+.score-tile:nth-child(4)::before { animation-delay: .5s; }
+
+/* Leaderboard rows cascade in; rows that change during live refresh flash. */
+.leaderboard-table tbody tr { animation: rise-in .4s ease both; }
+.leaderboard-table tbody tr:nth-child(2) { animation-delay: .03s; } .leaderboard-table tbody tr:nth-child(3) { animation-delay: .06s; }
+.leaderboard-table tbody tr:nth-child(4) { animation-delay: .09s; } .leaderboard-table tbody tr:nth-child(5) { animation-delay: .12s; }
+.leaderboard-table tbody tr:nth-child(n+6) { animation-delay: .15s; }
+.leaderboard-table tbody tr.changed { animation: row-flash 1.6s ease-out; }
+
+/* Tabs and flash messages */
+.tab-panel.active { animation: rise-in .3s ease both; }
+.flash { animation: slide-down .35s cubic-bezier(.2, .8, .2, 1) both; }
+.flash.is-leaving { opacity: 0; transform: translateY(-8px); transition: opacity .35s ease, transform .35s ease; }
+
+/* Cards that act as links lift slightly. */
+.mode-option, .quick-actions a { transition: transform .15s ease, border-color .15s ease, background-color .15s ease; }
+.mode-option:hover, .quick-actions a:hover { transform: translateY(-2px); }
+
+/* Theme switch: the new theme spreads out from the toggle. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: theme-reveal .55s cubic-bezier(.2, .8, .2, 1); }
+@keyframes theme-reveal {
+    from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); }
+    to { clip-path: circle(150vmax at var(--vt-x, 100%) var(--vt-y, 0)); }
+}
+.theme-toggle svg { transition: transform .4s cubic-bezier(.2, .8, .2, 1); }
+.theme-toggle:active svg { transform: rotate(-40deg) scale(.85); }
+
+@media (prefers-reduced-motion: reduce) {
+    .page-loader .loader-tiles span { animation: none !important; }
+}
+.leaderboard-table tbody.live tr { animation: none; }
+.leaderboard-table tbody.live tr.changed { animation: row-flash 1.6s ease-out; }

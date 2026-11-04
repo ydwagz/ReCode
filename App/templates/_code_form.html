@@ -1,0 +1,17 @@
+<form method="post" action="{{ post_url }}" class="otp" id="otp-form" data-length="{{ length }}" novalidate>
+    {% csrf_token %}
+    <label class="visually-hidden" for="otp-input">Verification code</label>
+    <input id="otp-input" name="code" class="otp-input form-control" inputmode="numeric" pattern="[0-9]*"
+           autocomplete="one-time-code" maxlength="{{ length }}" autofocus required>
+    <div class="otp-tiles" aria-hidden="true">
+        {% for i in digits %}<span class="otp-tile" data-state="empty"><span class="glyph"></span></span>{% endfor %}
+    </div>
+    <p class="otp-status" id="otp-status" role="status" aria-live="polite"></p>
+    <button class="btn-r btn-r-primary w-100 otp-fallback" type="submit">Verify</button>
+</form>
+<div class="verify-actions">
+    <form method="post" action="{{ resend_url }}">
+        {% csrf_token %}
+        <button class="link-btn" id="resend-btn" type="submit" data-wait="{{ wait }}">Resend code</button>
+    </form>
+</div>

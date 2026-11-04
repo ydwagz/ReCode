@@ -442,8 +442,7 @@ class EmailVerificationTests(TestCase):
 
     def test_changing_email_requires_new_verification(self):
         self.post_code(self.code())
-        self.client.post("/settings/", {"section": "account", "account-email": "new@example.com",
-                                        "account-display_name": "", "account-bio": ""})
+        self.client.post("/settings/", {"section": "email", "email-email": "new@example.com"})
         self.user.profile.refresh_from_db()
         self.assertFalse(self.user.profile.email_verified)
         self.assertEqual(self.mail.outbox[-1].to, ["new@example.com"])
@@ -491,3 +490,119 @@ class MissingMigrationMessageTests(TestCase):
         with mock.patch("App.views.accounts.RegisterForm.is_valid", side_effect=OperationalError("no such column: x")):
             response = self.client.post("/register/", {"username": "a"})
         self.assertContains(response, "python manage.py migrate", status_code=500)
+
+
+class ProfileSettingsTests(TestCase):
+    def setUp(self):
+        self.user = make_user("olduser", password="x")  # created before email was required: email == ""
+        self.client.force_login(self.user)
+
+    def test_bio_saves_even_without_an_email(self):
+        response = self.client.post("/settings/", {"section": "profile", "profile-display_name": "Old User", "profile-bio": "I like graphs"})
+        self.assertRedirects(response, "/settings/#profile", fetch_redirect_response=False)
+        self.user.profile.refresh_from_db()
+        self.assertEqual((self.user.profile.display_name, self.user.profile.bio), ("Old User", "I like graphs"))
+
+    def test_bio_shows_on_profile(self):
+        self.client.post("/settings/", {"section": "profile", "profile-display_name": "", "profile-bio": "Hello there"})
+        self.assertContains(self.client.get("/profile/"), "Hello there")
+
+    def test_email_form_is_separate_and_needs_verification(self):
+        self.client.post("/settings/", {"section": "email", "email-email": "old@example.com"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "old@example.com")
+        self.assertFalse(self.user.profile.email_verified)
+
+
+class LoginCodeTests(TestCase):
+    def setUp(self):
+        from django.core import mail
+
+        self.mail = mail
+        self.user = make_user("lela", email="lela@example.com", password="pw-123456!")
+
+    def code(self):
+        import re
+
+        return re.search(r"\b(\d{6})\b", self.mail.outbox[-1].body).group(1)
+
+    def login(self, password="pw-123456!", next_url=""):
+        url = "/login/" + (f"?next={next_url}" if next_url else "")
+        return self.client.post(url, {"username": "lela", "password": password, "next": next_url})
+
+    def post_code(self, code):
+        return self.client.post("/login/verify/", json.dumps({"code": code}), content_type="application/json").json()
+
+    def test_password_alone_does_not_sign_in(self):
+        response = self.login()
+        self.assertRedirects(response, "/login/verify/", fetch_redirect_response=False)
+        self.assertEqual(self.mail.outbox[-1].to, ["lela@example.com"])
+        self.assertRedirects(self.client.get("/dashboard/"), "/login/?next=/dashboard/")
+
+    def test_code_signs_in_and_honours_next(self):
+        self.login(next_url="/leaderboard/")
+        result = self.post_code(self.code())
+        self.assertEqual((result["state"], result["next"]), ("verified", "/leaderboard/"))
+        self.assertEqual(self.client.get("/dashboard/").status_code, 200)
+
+    def test_wrong_password_sends_nothing(self):
+        self.login(password="nope")
+        self.assertEqual(len(self.mail.outbox), 0)
+
+    def test_wrong_code_keeps_you_signed_out(self):
+        self.login()
+        bad = "000000" if self.code() != "000000" else "111111"
+        self.assertEqual(self.post_code(bad)["state"], "wrong")
+        self.assertRedirects(self.client.get("/dashboard/"), "/login/?next=/dashboard/")
+
+    def test_no_pending_login_goes_back_to_login(self):
+        self.assertRedirects(self.client.get("/login/verify/"), "/login/")
+
+    def test_pending_login_expires(self):
+        self.login()
+        session = self.client.session
+        session["pending_login"]["at"] -= 16 * 60
+        session.save()
+        self.assertRedirects(self.client.get("/login/verify/"), "/login/")
+
+    def test_account_without_email_adds_one_first(self):
+        old = make_user("oldie", password="pw-123456!")
+        self.client.post("/login/", {"username": "oldie", "password": "pw-123456!"})
+        self.assertContains(self.client.get("/login/verify/"), "Add your email")
+        self.assertEqual(len(self.mail.outbox), 0)
+        self.client.post("/login/verify/email/", {"email": "oldie@example.com"})
+        old.refresh_from_db()
+        self.assertEqual(old.email, "oldie@example.com")
+        self.assertEqual(self.post_code(self.code())["state"], "verified")
+
+    def test_cannot_swap_email_on_an_account_that_has_one(self):
+        self.login()
+        self.client.post("/login/verify/email/", {"email": "attacker@example.com"})
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.email, "lela@example.com")
+
+
+class LoginRightAfterSignupTests(TestCase):
+    def test_fresh_code_even_inside_resend_cooldown(self):
+        import re
+
+        from django.core import mail
+
+        data = {"username": "quick", "email": "quick@example.com", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"}
+        self.client.post("/register/", data)
+        first = re.search(r"\b(\d{6})\b", mail.outbox[-1].body).group(1)
+        self.client.post("/verify/", json.dumps({"code": first}), content_type="application/json")
+        self.client.post("/logout/")
+        self.client.post("/login/", {"username": "quick", "password": "a-Strong-pass-42"})
+        self.assertEqual(len(mail.outbox), 2, "a new code must be sent: the old one was used")
+        code = re.search(r"\b(\d{6})\b", mail.outbox[-1].body).group(1)
+        result = self.client.post("/login/verify/", json.dumps({"code": code}), content_type="application/json").json()
+        self.assertEqual(result["state"], "verified")
+
+    def test_unused_code_is_reused_instead_of_spamming(self):
+        from django.core import mail
+
+        make_user("again", email="again@example.com", password="pw-123456!")
+        self.client.post("/login/", {"username": "again", "password": "pw-123456!"})
+        self.client.post("/login/", {"username": "again", "password": "pw-123456!"})
+        self.assertEqual(len(mail.outbox), 1)

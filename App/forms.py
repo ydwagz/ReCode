@@ -32,33 +32,41 @@ class RegisterForm(UserCreationForm):
         return email
 
 
-class AccountForm(forms.ModelForm):
-    email = forms.EmailField(help_text="Changing it needs a new code.")
+class ProfileForm(forms.ModelForm):
+    """Name and bio only — never blocked by anything else on the account."""
 
     class Meta:
         model = Profile
         fields = ("display_name", "bio")
+        widgets = {"bio": forms.Textarea(attrs={"rows": 3, "maxlength": 200})}
+        labels = {"display_name": "Display name"}
 
-    def __init__(self, *args, **kwargs):
+
+class EmailForm(forms.Form):
+    email = forms.EmailField(help_text="Changing it needs a new code.")
+
+    def __init__(self, *args, user, **kwargs):
+        self.user = user
         super().__init__(*args, **kwargs)
-        self.fields["email"].initial = self.instance.user.email
+        self.fields["email"].initial = user.email
 
     def clean_email(self):
         email = self.cleaned_data["email"].strip()
-        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.user_id).exists():
+        if User.objects.filter(email__iexact=email).exclude(pk=self.user.pk).exists():
             raise forms.ValidationError("That email is already in use.")
         return email
 
-    def save(self, commit=True):
-        profile = super().save(commit=False)
-        user = profile.user
-        if user.email.lower() != self.cleaned_data["email"].lower():
-            user.email = self.cleaned_data["email"]
-            user.save(update_fields=["email"])
-            profile.email_verified = False  # a new address has to be confirmed again
-        if commit:
-            profile.save()
-        return profile
+    def save(self):
+        """Returns True when the address changed (and so needs verifying again)."""
+        email = self.cleaned_data["email"]
+        if self.user.email.lower() == email.lower():
+            return False
+        self.user.email = email
+        self.user.save(update_fields=["email"])
+        profile = self.user.profile
+        profile.email_verified = False
+        profile.save(update_fields=["email_verified"])
+        return True
 
 
 class PreferencesForm(forms.ModelForm):

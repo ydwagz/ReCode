@@ -56,6 +56,20 @@ def send_code(user, *, force=False):
     return 0
 
 
+def has_usable_code(user):
+    entry = user.email_codes.filter(used=False).first()
+    return bool(entry and entry.email == user.email and not entry.expired and entry.attempts < EmailCode.MAX_ATTEMPTS)
+
+
+def ensure_code(user):
+    """Make sure the user has a working code: reuse a valid unused one, otherwise send a new one now.
+
+    Used when signing in, where waiting out the resend cooldown would leave the user with nothing to type.
+    """
+    if not has_usable_code(user):
+        send_code(user, force=True)
+
+
 def check_code(user, code):
     """Returns one of: verified, wrong, expired, locked, missing — plus attempts left."""
     entry = user.email_codes.filter(used=False).first()
