@@ -1,4 +1,4 @@
-from .accounts import login_add_email, login_resend, login_verify, login_view, logout_view, register
+from .accounts import login_view, logout_view, register
 from .api import api_challenge, api_me, api_run, api_submit, api_today
 from .challenges import (
     challenge_detail,
@@ -16,7 +16,6 @@ from .challenges import (
     today_redirect,
 )
 from .community import community, leaderboard, leaderboard_data
-from .verify import change_email, resend_code, verify_email
 from .pages import dashboard, home, profile, public_profile, settings_view
 from .teams import (
     invite_respond,

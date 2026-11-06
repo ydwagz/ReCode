@@ -7,7 +7,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .. import leaderboards, services, streaks, verification
+from .. import leaderboards, services, streaks
 from ..forms import EmailForm, PreferencesForm, ProfileForm, WebhookForm
 from ..models import Challenge, StreakDay, Submission, new_token, utc_today
 
@@ -122,12 +122,6 @@ def settings_view(request):
             saved = form.save()
             if section == "password":
                 update_session_auth_hash(request, saved)
-            if section == "email" and saved:
-                try:
-                    verification.send_code(request.user, force=True)
-                except verification.SendFailed:
-                    messages.error(request, verification.SEND_FAILED_MESSAGE)
-                return redirect("verify_email")
             messages.success(request, "Saved.")
             return redirect(f"/settings/#{section}")
         messages.error(request, "Check the highlighted field.")

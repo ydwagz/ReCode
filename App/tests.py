@@ -22,11 +22,7 @@ BAD_TWO_SUM = "def two_sum(nums, target):\n    return [0, 1]\n"
 
 
 def make_user(*args, **kwargs):
-    """A user who has already confirmed their email."""
-    user = User.objects.create_user(*args, **kwargs)
-    user.profile.email_verified = True
-    user.profile.save(update_fields=["email_verified"])
-    return user
+    return User.objects.create_user(*args, **kwargs)
 
 
 def make_two_sum(day=None, **extra):
@@ -355,7 +351,7 @@ class PageTests(TestCase):
 
     def test_register_creates_profile_and_logs_in(self):
         response = self.client.post("/register/", {"username": "newbie", "email": "new@example.com", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
-        self.assertRedirects(response, "/verify/")
+        self.assertRedirects(response, "/dashboard/")
         self.assertTrue(User.objects.get(username="newbie").profile.api_token)
 
     def test_private_profile_hidden(self):
@@ -367,86 +363,6 @@ class PageTests(TestCase):
     def setUp(self):
         cache.clear()
 
-
-class EmailVerificationTests(TestCase):
-    def setUp(self):
-        from django.core import mail
-
-        self.mail = mail
-        self.client.post("/register/", {"username": "vera", "email": "vera@example.com",
-                                        "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
-        self.user = User.objects.get(username="vera")
-
-    def code(self):
-        import re
-
-        return re.search(r"\b(\d{6})\b", self.mail.outbox[-1].body).group(1)
-
-    def post_code(self, code):
-        return self.client.post("/verify/", json.dumps({"code": code}), content_type="application/json").json()
-
-    def test_registration_sends_code_and_gates_the_site(self):
-        self.assertEqual(len(self.mail.outbox), 1)
-        self.assertEqual(self.mail.outbox[0].to, ["vera@example.com"])
-        self.assertRedirects(self.client.get("/dashboard/"), "/verify/")
-        self.assertContains(self.client.get("/verify/"), "ve••@example.com")
-
-    def test_correct_code_verifies(self):
-        result = self.post_code(self.code())
-        self.assertEqual(result["state"], "verified")
-        self.user.profile.refresh_from_db()
-        self.assertTrue(self.user.profile.email_verified)
-        self.assertEqual(self.client.get("/dashboard/").status_code, 200)
-
-    def test_wrong_code_counts_attempts_then_locks(self):
-        good = self.code()
-        bad = "000000" if good != "000000" else "111111"
-        states = [self.post_code(bad)["state"] for _ in range(5)]
-        self.assertEqual(states, ["wrong"] * 4 + ["locked"])
-        self.assertEqual(self.post_code(good)["state"], "locked")
-
-    def test_expired_code(self):
-        from .models import EmailCode
-
-        EmailCode.objects.update(created_at=timezone.now() - EmailCode.TTL - timedelta(seconds=1))
-        self.assertEqual(self.post_code(self.code())["state"], "expired")
-
-    def test_resend_has_cooldown_and_invalidates_old_code(self):
-        old = self.code()
-        self.client.post("/verify/resend/")
-        self.assertEqual(len(self.mail.outbox), 1)  # still cooling down
-        from .models import EmailCode
-
-        EmailCode.objects.update(created_at=timezone.now() - EmailCode.RESEND_COOLDOWN)
-        self.client.post("/verify/resend/")
-        self.assertEqual(len(self.mail.outbox), 2)
-        new = self.code()
-        if new != old:
-            self.assertEqual(self.post_code(old)["state"], "wrong")
-        self.assertEqual(self.post_code(new)["state"], "verified")
-
-    def test_codes_are_not_stored_in_plain_text(self):
-        from .models import EmailCode
-
-        self.assertNotIn(self.code(), EmailCode.objects.get().code_hash)
-
-    def test_api_rejects_unverified(self):
-        response = self.client.get("/api/v1/me/", HTTP_AUTHORIZATION=f"Token {self.user.profile.api_token}")
-        self.assertEqual(response.status_code, 403)
-
-    def test_duplicate_email_rejected(self):
-        self.client.logout()
-        response = self.client.post("/register/", {"username": "copy", "email": "VERA@example.com",
-                                                   "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"})
-        self.assertContains(response, "already in use")
-
-    def test_changing_email_requires_new_verification(self):
-        self.post_code(self.code())
-        self.client.post("/settings/", {"section": "email", "email-email": "new@example.com"})
-        self.user.profile.refresh_from_db()
-        self.assertFalse(self.user.profile.email_verified)
-        self.assertEqual(self.mail.outbox[-1].to, ["new@example.com"])
-        self.assertRedirects(self.client.get("/dashboard/"), "/verify/")
 
 
 class RegistrationIsAtomicTests(TestCase):
@@ -462,13 +378,7 @@ class RegistrationIsAtomicTests(TestCase):
             self.client.post("/register/", self.data)
         self.assertFalse(User.objects.filter(username="giorgi").exists())
         response = self.client.post("/register/", self.data)
-        self.assertRedirects(response, "/verify/")
-
-    def test_email_failure_keeps_account_and_explains(self):
-        with mock.patch("App.verification.send_mail", side_effect=OSError("smtp down")), self.assertLogs("recode", "ERROR"):
-            response = self.client.post("/register/", self.data, follow=True)
-        self.assertTrue(User.objects.filter(username="giorgi").exists())
-        self.assertContains(response, "couldn&#x27;t send")
+        self.assertRedirects(response, "/dashboard/")
 
     def test_cleanup_removes_only_broken_signups(self):
         from App.signups import remove_broken_signups
@@ -507,105 +417,13 @@ class ProfileSettingsTests(TestCase):
         self.client.post("/settings/", {"section": "profile", "profile-display_name": "", "profile-bio": "Hello there"})
         self.assertContains(self.client.get("/profile/"), "Hello there")
 
-    def test_email_form_is_separate_and_needs_verification(self):
-        self.client.post("/settings/", {"section": "email", "email-email": "old@example.com"})
+    def test_email_saves_without_any_code(self):
+        response = self.client.post("/settings/", {"section": "email", "email-email": "old@example.com"})
+        self.assertRedirects(response, "/settings/#email", fetch_redirect_response=False)
         self.user.refresh_from_db()
         self.assertEqual(self.user.email, "old@example.com")
-        self.assertFalse(self.user.profile.email_verified)
 
 
-class LoginCodeTests(TestCase):
-    def setUp(self):
-        from django.core import mail
-
-        self.mail = mail
-        self.user = make_user("lela", email="lela@example.com", password="pw-123456!")
-
-    def code(self):
-        import re
-
-        return re.search(r"\b(\d{6})\b", self.mail.outbox[-1].body).group(1)
-
-    def login(self, password="pw-123456!", next_url=""):
-        url = "/login/" + (f"?next={next_url}" if next_url else "")
-        return self.client.post(url, {"username": "lela", "password": password, "next": next_url})
-
-    def post_code(self, code):
-        return self.client.post("/login/verify/", json.dumps({"code": code}), content_type="application/json").json()
-
-    def test_password_alone_does_not_sign_in(self):
-        response = self.login()
-        self.assertRedirects(response, "/login/verify/", fetch_redirect_response=False)
-        self.assertEqual(self.mail.outbox[-1].to, ["lela@example.com"])
-        self.assertRedirects(self.client.get("/dashboard/"), "/login/?next=/dashboard/")
-
-    def test_code_signs_in_and_honours_next(self):
-        self.login(next_url="/leaderboard/")
-        result = self.post_code(self.code())
-        self.assertEqual((result["state"], result["next"]), ("verified", "/leaderboard/"))
-        self.assertEqual(self.client.get("/dashboard/").status_code, 200)
-
-    def test_wrong_password_sends_nothing(self):
-        self.login(password="nope")
-        self.assertEqual(len(self.mail.outbox), 0)
-
-    def test_wrong_code_keeps_you_signed_out(self):
-        self.login()
-        bad = "000000" if self.code() != "000000" else "111111"
-        self.assertEqual(self.post_code(bad)["state"], "wrong")
-        self.assertRedirects(self.client.get("/dashboard/"), "/login/?next=/dashboard/")
-
-    def test_no_pending_login_goes_back_to_login(self):
-        self.assertRedirects(self.client.get("/login/verify/"), "/login/")
-
-    def test_pending_login_expires(self):
-        self.login()
-        session = self.client.session
-        session["pending_login"]["at"] -= 16 * 60
-        session.save()
-        self.assertRedirects(self.client.get("/login/verify/"), "/login/")
-
-    def test_account_without_email_adds_one_first(self):
-        old = make_user("oldie", password="pw-123456!")
-        self.client.post("/login/", {"username": "oldie", "password": "pw-123456!"})
-        self.assertContains(self.client.get("/login/verify/"), "Add your email")
-        self.assertEqual(len(self.mail.outbox), 0)
-        self.client.post("/login/verify/email/", {"email": "oldie@example.com"})
-        old.refresh_from_db()
-        self.assertEqual(old.email, "oldie@example.com")
-        self.assertEqual(self.post_code(self.code())["state"], "verified")
-
-    def test_cannot_swap_email_on_an_account_that_has_one(self):
-        self.login()
-        self.client.post("/login/verify/email/", {"email": "attacker@example.com"})
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.email, "lela@example.com")
-
-
-class LoginRightAfterSignupTests(TestCase):
-    def test_fresh_code_even_inside_resend_cooldown(self):
-        import re
-
-        from django.core import mail
-
-        data = {"username": "quick", "email": "quick@example.com", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"}
-        self.client.post("/register/", data)
-        first = re.search(r"\b(\d{6})\b", mail.outbox[-1].body).group(1)
-        self.client.post("/verify/", json.dumps({"code": first}), content_type="application/json")
-        self.client.post("/logout/")
-        self.client.post("/login/", {"username": "quick", "password": "a-Strong-pass-42"})
-        self.assertEqual(len(mail.outbox), 2, "a new code must be sent: the old one was used")
-        code = re.search(r"\b(\d{6})\b", mail.outbox[-1].body).group(1)
-        result = self.client.post("/login/verify/", json.dumps({"code": code}), content_type="application/json").json()
-        self.assertEqual(result["state"], "verified")
-
-    def test_unused_code_is_reused_instead_of_spamming(self):
-        from django.core import mail
-
-        make_user("again", email="again@example.com", password="pw-123456!")
-        self.client.post("/login/", {"username": "again", "password": "pw-123456!"})
-        self.client.post("/login/", {"username": "again", "password": "pw-123456!"})
-        self.assertEqual(len(mail.outbox), 1)
 
 
 class DotenvTests(TestCase):
@@ -626,3 +444,28 @@ class DotenvTests(TestCase):
                 self.assertEqual(os.environ["RECODE_T_C"], "from-env")
             for key in ("RECODE_T_A", "RECODE_T_B"):
                 os.environ.pop(key, None)
+
+
+
+class NoEmailVerificationTests(TestCase):
+    def test_sign_up_without_email_goes_straight_to_dashboard(self):
+        data = {"username": "noemail", "email": "", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"}
+        self.assertRedirects(self.client.post("/register/", data), "/dashboard/")
+        self.assertEqual(self.client.get("/dashboard/").status_code, 200)
+
+    def test_sign_in_is_password_only(self):
+        from django.core import mail
+
+        make_user("plain", password="pw-123456!")
+        response = self.client.post("/login/", {"username": "plain", "password": "pw-123456!"})
+        self.assertRedirects(response, "/dashboard/")
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_verify_pages_are_gone(self):
+        for url in ("/verify/", "/login/verify/"):
+            self.assertEqual(self.client.get(url).status_code, 404, url)
+
+    def test_duplicate_email_still_rejected(self):
+        make_user("first", email="same@example.com", password="x")
+        data = {"username": "second", "email": "SAME@example.com", "password1": "a-Strong-pass-42", "password2": "a-Strong-pass-42"}
+        self.assertContains(self.client.post("/register/", data), "already in use")

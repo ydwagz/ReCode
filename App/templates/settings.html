@@ -24,7 +24,6 @@
 
         <section id="email" class="r-card mb-4">
             <h3>Email</h3>
-            {% if not user.email %}<p class="muted small">Add an email. You'll need it to sign in.</p>{% endif %}
             <form method="post">{% csrf_token %}<input type="hidden" name="section" value="email">
                 {% for field in email %}{% include '_field.html' %}{% endfor %}
                 <button class="btn-r btn-r-primary">{% if user.email %}Change email{% else %}Add email{% endif %}</button>

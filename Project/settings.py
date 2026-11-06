@@ -69,7 +69,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'App.middleware.EmailVerificationMiddleware',
     'App.middleware.MissingMigrationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -156,37 +155,12 @@ CACHES = {
 }
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
-# Email. Without RECODE_EMAIL_HOST, codes are printed in the runserver console.
-# To send real email, put the RECODE_EMAIL_* settings in a .env file (see .env.example).
-EMAIL_IS_REAL = bool(os.environ.get('RECODE_EMAIL_HOST'))
-if EMAIL_IS_REAL:
-    MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.smtp.EmailBackend',
-            'OPTIONS': {
-                'host': os.environ['RECODE_EMAIL_HOST'],
-                'port': int(os.environ.get('RECODE_EMAIL_PORT', '587')),
-                'username': os.environ.get('RECODE_EMAIL_USER', ''),
-                'password': os.environ.get('RECODE_EMAIL_PASSWORD', ''),
-                'use_tls': os.environ.get('RECODE_EMAIL_TLS', '1') == '1',
-                'use_ssl': os.environ.get('RECODE_EMAIL_SSL', '0') == '1',
-                'timeout': 15,
-            },
-        },
-    }
-else:
-    MAILERS = {
-        'default': {
-            'BACKEND': 'django.core.mail.backends.console.EmailBackend',
-        },
-    }
-# Most providers (Gmail included) only accept mail "from" the account you log in with.
-DEFAULT_FROM_EMAIL = os.environ.get('RECODE_EMAIL_FROM') or (
-    f"ReCode <{os.environ['RECODE_EMAIL_USER']}>" if os.environ.get('RECODE_EMAIL_USER') else 'ReCode <no-reply@recode.local>'
-)
+# Email: nothing in ReCode sends mail; anything Django sends is printed in the console.
+MAILERS = {
+    'default': {
+        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    },
+}
 
 LOGGING = {
     'version': 1,

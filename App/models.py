@@ -45,9 +45,6 @@ class Profile(models.Model):
     public_profile = models.BooleanField(default=True)
     show_on_leaderboard = models.BooleanField(default=True)
 
-    # Email verification: unverified accounts can browse but not play.
-    email_verified = models.BooleanField(default=False)
-
     # Integrations
     api_token = models.CharField(max_length=64, unique=True, default=new_token)
     webhook_url = models.URLField(blank=True)
@@ -350,25 +347,3 @@ class SolutionLike(models.Model):
 
     class Meta:
         unique_together = [("submission", "user")]
-
-
-class EmailCode(models.Model):
-    """A one-time 6-digit code e-mailed to confirm an address. Only a hash is stored."""
-
-    TTL = timedelta(minutes=15)
-    MAX_ATTEMPTS = 5
-    RESEND_COOLDOWN = timedelta(seconds=60)
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="email_codes")
-    email = models.EmailField()
-    code_hash = models.CharField(max_length=64)
-    created_at = models.DateTimeField(default=timezone.now)
-    attempts = models.PositiveSmallIntegerField(default=0)
-    used = models.BooleanField(default=False)
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    @property
-    def expired(self):
-        return timezone.now() >= self.created_at + self.TTL

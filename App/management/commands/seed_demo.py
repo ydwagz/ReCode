@@ -56,7 +56,7 @@ class Command(BaseCommand):
         users = {}
         for name in NAMES:
             user, created = User.objects.get_or_create(username=name)
-            if not user.email:  # sign-in codes for demo players appear in the runserver console
+            if not user.email:
                 user.email = f"{name}@demo.recode.local"
                 user.save(update_fields=["email"])
             if created:
@@ -64,7 +64,6 @@ class Command(BaseCommand):
                 user.save()
                 user.profile.display_name = name.capitalize()
                 user.profile.default_language = rng.choice(["python", "python", "javascript"])
-                user.profile.email_verified = True
                 user.profile.save()
             users[name] = user
 

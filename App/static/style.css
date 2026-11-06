@@ -128,9 +128,9 @@ p, li, figcaption, blockquote, .statement, .feed-quote, .flash span, .empty { te
 
 /* Numbers that change in place (timers, scores, counters, ranks) keep fixed-width digits,
    so count-ups and live updates don't jiggle the layout. */
-[data-countdown], .tile-clock, .otp-tile, .case-chip, .score-total, .streak-number,
+[data-countdown], .tile-clock, .case-chip, .score-total, .streak-number,
 .stat strong, .mini-stats strong, .team-kpis strong, .my-rank strong, .today-stats strong,
-.leaderboard-table td, .tab-count, .chat-time, .lang-row, #attempts-label, #resend-btn,
+.leaderboard-table td, .tab-count, .chat-time, .lang-row, #attempts-label,
 .heat-legend, .streak-meta { font-variant-numeric: tabular-nums; }
 
 h1, h2, h3, h4, h5 {
@@ -999,19 +999,10 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 }
 
 /* ==========================================================================
-   Tile states — shared by the email code and test results.
-   empty · active · filled (written in) · checking (wave) · correct (flip) ·
-   wrong (shake) · expired/timeout (amber, dimmed)
+   Tile states for test results: checking (wave) · correct (flip) ·
+   wrong (shake) · timeout (amber)
    ========================================================================== */
 
-@keyframes tile-pop { 0% { transform: scale(.88); } 55% { transform: scale(1.08); } 100% { transform: scale(1); } }
-@keyframes tile-write {
-    0% { clip-path: inset(0 100% 0 0); transform: translateY(3px) skewX(-8deg); opacity: .4; }
-    70% { clip-path: inset(0 0 0 0); transform: translateY(0) skewX(-3deg); opacity: 1; }
-    100% { clip-path: inset(0 0 0 0); transform: none; }
-}
-@keyframes pen-stroke { 0% { transform: scaleX(0); opacity: 1; } 80% { transform: scaleX(1); opacity: 1; } 100% { transform: scaleX(1); opacity: 0; } }
-@keyframes caret { 0%, 45% { opacity: 1; } 50%, 100% { opacity: 0; } }
 @keyframes tile-wave { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-7px); } }
 @keyframes tile-flip {
     0% { transform: rotateX(0); }
@@ -1020,80 +1011,6 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 }
 @keyframes tile-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-7px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
 @keyframes tile-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-
-/* --- Email code entry --- */
-.verify-card { max-width: 460px; text-align: center; }
-.verify-card h1 { margin-bottom: 6px; }
-.otp { position: relative; margin: 28px 0 8px; }
-.otp-tiles { display: none; justify-content: center; gap: 8px; perspective: 600px; }
-.otp.is-enhanced .otp-tiles { display: flex; }
-.otp.is-enhanced .otp-fallback { display: none; }
-.otp-input { margin-bottom: 12px; text-align: center; letter-spacing: .4em; font-family: var(--mono); font-size: 22px; }
-.otp.is-enhanced .otp-input {
-    position: absolute; inset: 0; width: 100%; height: 64px; margin: 0;
-    opacity: 0; color: transparent; caret-color: transparent; z-index: 2; cursor: text;
-}
-
-.otp-tile {
-    position: relative;
-    width: 52px; height: 64px;
-    display: inline-flex; align-items: center; justify-content: center;
-    border-radius: 10px;
-    background: var(--tile-off);
-    border: 2px solid var(--tile-off-border);
-    font-family: var(--font-display); font-weight: 800; font-size: 30px; color: var(--text);
-    transition: border-color .15s ease, background-color .2s ease, color .2s ease;
-}
-.otp-tile .glyph { display: inline-block; }
-.otp-tile[data-state="active"] { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
-.otp-tile[data-state="active"]::after {
-    content: ""; position: absolute; width: 2px; height: 30px; border-radius: 1px;
-    background: var(--accent); animation: caret 1s steps(1) infinite;
-}
-.otp-tile[data-state="filled"] { border-color: var(--text); }
-.otp-tile.write { animation: tile-pop .22s ease-out; }
-.otp-tile.write .glyph { animation: tile-write .32s cubic-bezier(.2, .8, .2, 1) both; }
-.otp-tile.write::before {
-    content: ""; position: absolute; left: 12px; right: 12px; bottom: 11px; height: 2px; border-radius: 1px;
-    background: var(--accent); transform-origin: left; animation: pen-stroke .38s ease-out forwards;
-}
-
-.otp[data-state="checking"] .otp-tile {
-    border-color: var(--accent);
-    background: linear-gradient(100deg, var(--tile-off) 30%, var(--accent-soft) 50%, var(--tile-off) 70%) 0 0 / 200% 100%;
-    animation: tile-wave .7s ease-in-out infinite, tile-shimmer 1.2s linear infinite;
-}
-.otp[data-state="verified"] .otp-tile {
-    animation: tile-flip .5s ease-in-out both;
-    background: var(--tile-ok); border-color: color-mix(in srgb, var(--tile-ok) 70%, #000); color: var(--tile-ok-ink);
-    transition-delay: .25s;
-}
-.otp[data-state="wrong"] .otp-tiles { animation: tile-shake .45s ease-in-out; }
-.otp[data-state="wrong"] .otp-tile { background: var(--tile-bad); border-color: color-mix(in srgb, var(--tile-bad) 70%, #000); color: #fff; }
-.otp[data-state="expired"] .otp-tile { background: var(--tile-mid); border-color: color-mix(in srgb, var(--tile-mid) 70%, #000); color: var(--tile-mid-ink); opacity: .75; }
-
-.otp-tile:nth-child(1) { animation-delay: 0s; transition-delay: 0s; }
-.otp-tile:nth-child(2) { animation-delay: .08s; }
-.otp-tile:nth-child(3) { animation-delay: .16s; }
-.otp-tile:nth-child(4) { animation-delay: .24s; }
-.otp-tile:nth-child(5) { animation-delay: .32s; }
-.otp-tile:nth-child(6) { animation-delay: .40s; }
-.otp[data-state="verified"] .otp-tile:nth-child(2) { transition-delay: .33s; }
-.otp[data-state="verified"] .otp-tile:nth-child(3) { transition-delay: .41s; }
-.otp[data-state="verified"] .otp-tile:nth-child(4) { transition-delay: .49s; }
-.otp[data-state="verified"] .otp-tile:nth-child(5) { transition-delay: .57s; }
-.otp[data-state="verified"] .otp-tile:nth-child(6) { transition-delay: .65s; }
-
-.otp-status { min-height: 24px; margin: 14px 0 0; font-size: 15px; font-weight: 500; color: var(--muted); }
-.otp-status[data-tone="ok"] { color: var(--ok); }
-.otp-status[data-tone="bad"] { color: var(--bad); }
-.verify-actions { display: flex; justify-content: center; align-items: flex-start; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
-.change-email form { justify-content: center; }
-.link-btn { position: relative; background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; font-size: 15px; cursor: pointer; list-style: none; transition: transform .15s ease-out; }
-.link-btn::after { content: ""; position: absolute; left: -6px; right: -6px; top: -12px; bottom: -12px; }  /* 44px tall */
-.link-btn:active:not(:disabled) { transform: scale(0.96); }
-.link-btn::-webkit-details-marker { display: none; }
-.link-btn:disabled { color: var(--muted); cursor: default; }
 
 /* --- Test result tiles --- */
 .case-list { perspective: 600px; }
@@ -1108,14 +1025,6 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 .case-chip.reveal.fail { animation: tile-flip .45s ease-in-out both, tile-shake .4s ease-in-out both; animation-delay: calc(var(--i, 0) * 70ms), calc(var(--i, 0) * 70ms + 450ms); }
 .case-chip.reveal.timeout { opacity: .85; }
 
-@media (max-width: 420px) {
-    .otp-tile { width: 44px; height: 56px; font-size: 26px; }
-    .otp.is-enhanced .otp-input { height: 56px; }
-}
-.otp[data-state="checking"] .otp-tile::after,
-.otp[data-state="verified"] .otp-tile::after,
-.otp[data-state="wrong"] .otp-tile::after,
-.otp[data-state="expired"] .otp-tile::after { display: none; }
 
 /* ==========================================================================
    Loading
@@ -1268,12 +1177,6 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
 .leaderboard-table tbody.live tr.changed { animation: row-flash 1.6s ease-out; }
 /* The full editor fades in over the plain one when it finishes loading. */
 .cm-upgraded { animation: rise-in .3s ease both; }
-.dev-mail-note {
-    margin: 18px 0 0; padding: 10px 14px; text-align: left;
-    border-radius: 10px; border: 1px dashed var(--tile-mid);
-    background: color-mix(in srgb, var(--tile-mid) 12%, transparent);
-    font-size: 14px; line-height: 1.5;
-}
 
 /* Dark mode: layered depth isn't visible on dark backgrounds, so the shadow collapses to a light ring. */
 :root[data-theme="dark"] { --shadow-border: 0 0 0 1px rgba(255, 255, 255, 0.08); --shadow-border-hover: 0 0 0 1px rgba(255, 255, 255, 0.13); }
