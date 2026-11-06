@@ -26,7 +26,7 @@
             <div class="r-card">
                 <span class="eyebrow">Your team</span>
                 <h3 class="mt-1"><a href="{{ my_team.get_absolute_url }}">{{ my_team.name }}</a></h3>
-                <div class="avatars my-2">{% for m in my_team.active_members %}<span class="avatar" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
+                <div class="avatars my-2">{% for m in my_team.active_members %}<span class="avatar av-{{ m.profile.name|tone }}" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
                 <a class="btn-r btn-r-primary btn-r-sm" href="{{ my_team.get_absolute_url }}">Open team</a>
             </div>
             {% elif user.is_authenticated %}

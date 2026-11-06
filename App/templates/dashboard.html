@@ -42,7 +42,7 @@
                 <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
             </div>
             <div class="today-stats">
-                <div><span class="label">Closes in</span><strong data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</strong></div>
+                <div><span class="label">Closes in</span><span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span></div>
                 <div><span class="label">Status</span>
                     <strong>{% if entry.solved %}<span class="ok">Solved</span>{% elif entry %}In progress, {{ entry.failed_attempts }} failed{% else %}Not started{% endif %}</strong>
                 </div>
@@ -73,7 +73,7 @@
                 {% if team %}<span>Team: {{ team_streak }}</span>{% endif %}
             </div>
             <div class="heat heat-28">
-                {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %}: {{ day.kind }}{% endif %}"></span>{% endfor %}
+                {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}{% if forloop.last %} heat-today{% endif %}" title="{{ day.date|date:'M j' }}{% if day.kind %}: {{ day.kind }}{% endif %}"></span>{% endfor %}
             </div>
             <div class="heat-legend muted small"><span><span class="heat-cell heat-solved"></span>Solved</span><span><span class="heat-cell heat-recovered"></span>Recovered</span><span><span class="heat-cell heat-frozen"></span>Freeze</span></div>
         </div>
@@ -92,14 +92,14 @@
                 {% endfor %}
                 </tbody>
             </table>
-            {% else %}<div class="empty">No results yet.</div>{% endif %}
+            {% else %}{% url 'today' as today_url %}{% include '_empty.html' with text="No results yet." cta_url=today_url cta="Solve today's problem" %}{% endif %}
         </div>
 
         <div class="r-card">
             <span class="eyebrow">Team</span>
             {% if team %}
             <h3 class="mt-1"><a href="{{ team.get_absolute_url }}">{{ team.name }}</a></h3>
-            <div class="avatars my-2">{% for m in team.active_members %}<span class="avatar" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
+            <div class="avatars my-2">{% for m in team.active_members %}<span class="avatar av-{{ m.profile.name|tone }}" title="{{ m.profile.name }}">{{ m.profile.name|initials }}</span>{% endfor %}</div>
             <p class="muted small mb-3">{{ team.member_count }}/5 members, {{ team_streak }} day streak</p>
             <a class="btn-r btn-r-sm btn-r-ghost" href="{{ team.get_absolute_url }}">Open team</a>
             {% else %}

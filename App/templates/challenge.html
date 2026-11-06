@@ -370,7 +370,7 @@
     const res = await getJSON(base + "progress/");
     if (!res.ok) return;
     document.getElementById("team-members").innerHTML = res.members.map((m) =>
-      "<li><span class='avatar avatar-sm'>" + escapeHTML(m.name[0].toUpperCase()) + "</span> " + escapeHTML(m.name) +
+      "<li><span class='avatar avatar-sm av-" + ReCode.tone(m.name) + "'>" + escapeHTML(m.name[0].toUpperCase()) + "</span> " + escapeHTML(m.name) +
       "<span class='muted small ms-auto'>" + m.submissions + " sub" + (m.submissions === 1 ? "" : "s") + "</span>" +
       (m.last_status ? "<span class='status status-" + m.last_status + "'>" + m.last_status + "</span>" : "<span class='muted small'>idle</span>") + "</li>"
     ).join("");

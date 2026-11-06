@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page">
     <div class="profile-head">
-        <span class="avatar avatar-xl">{{ subject.profile.name|initials }}</span>
+        <span class="avatar avatar-xl av-{{ subject.profile.name|tone }}">{{ subject.profile.name|initials }}</span>
         <div>
             <h1 class="mb-1">{{ subject.profile.name }}</h1>
             <div class="muted">@{{ subject.username }}, joined {{ subject.date_joined|date:"F Y" }}{% if subject.profile.active_team %}, plays with <a href="{{ subject.profile.active_team.get_absolute_url }}">{{ subject.profile.active_team.name }}</a>{% endif %}</div>
@@ -27,7 +27,7 @@
             <div class="r-card mb-4">
                 <span class="eyebrow">Last 12 weeks</span>
                 <div class="heat heat-84 mt-2">
-                    {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}" title="{{ day.date|date:'M j' }}{% if day.kind %}: {{ day.kind }}{% endif %}"></span>{% endfor %}
+                    {% for day in calendar %}<span class="heat-cell heat-{{ day.kind|default:'none' }}{% if forloop.last %} heat-today{% endif %}" title="{{ day.date|date:'M j' }}{% if day.kind %}: {{ day.kind }}{% endif %}"></span>{% endfor %}
                 </div>
                 <div class="heat-legend muted small"><span><span class="heat-cell heat-solved"></span>Solved</span><span><span class="heat-cell heat-recovered"></span>Recovered</span><span><span class="heat-cell heat-frozen"></span>Freeze</span></div>
             </div>

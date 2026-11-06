@@ -141,6 +141,22 @@
       .forEach((el) => seen.observe(el));
   }
 
+  // ------------------------------------------------------------ pointer glow
+  // Panels light up softly under the pointer (hover devices only; see CSS).
+  if (window.matchMedia("(hover: hover)").matches) {
+    let pending = null;
+    document.addEventListener("pointermove", (event) => {
+      const panel = event.target.closest && event.target.closest(".r-card, .leaderboard-container, .podium-step");
+      if (!panel || pending) return;
+      pending = requestAnimationFrame(() => {
+        const r = panel.getBoundingClientRect();
+        panel.style.setProperty("--mx", event.clientX - r.left + "px");
+        panel.style.setProperty("--my", event.clientY - r.top + "px");
+        pending = null;
+      });
+    }, { passive: true });
+  }
+
   // ------------------------------------------------------------ flash messages
   document.querySelectorAll(".flash-success, .flash-info").forEach((flash) => {
     setTimeout(() => { flash.classList.add("is-leaving"); setTimeout(() => flash.remove(), 400); }, 5000);
@@ -178,5 +194,8 @@
     }).join("") + "</div>";
   }
 
-  window.ReCode = { getCookie, postJSON, getJSON, fmtDuration, escapeHTML, scoreTiles };
+  // Stable colour slot (0-4) per name; mirrors the `tone` template filter.
+  const tone = (name) => [...String(name)].reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 5;
+
+  window.ReCode = { getCookie, postJSON, getJSON, fmtDuration, escapeHTML, scoreTiles, tone };
 })();

@@ -18,7 +18,28 @@ def home(request):
     challenge = services.todays_challenge()
     solvers = challenge.participations.filter(solved_at__isnull=False).count()
     top = leaderboards.ranked_entries("daily", limit=5)
-    return render(request, "home.html", {"challenge": challenge, "solvers": solvers, "top": top})
+    return render(request, "home.html", {
+        "challenge": challenge, "solvers": solvers, "top": top, "recent": _recent_solves(),
+    })
+
+
+def _recent_solves(limit=14):
+    """Real, ranked solves for the activity strip (players who hide from leaderboards are left out)."""
+    from ..models import Participation
+
+    rows = []
+    entries = (
+        Participation.objects.filter(solved_at__isnull=False, is_practice=False, challenge__team__isnull=True)
+        .select_related("user__profile", "team", "challenge").order_by("-solved_at")[:limit * 2]
+    )
+    for entry in entries:
+        if not entry.team_id and not entry.user.profile.show_on_leaderboard:
+            continue
+        rows.append({"name": entry.owner_name, "is_team": entry.is_team, "title": entry.challenge.title,
+                     "score": entry.score, "seconds": entry.solve_seconds})
+        if len(rows) == limit:
+            break
+    return rows
 
 
 @login_required

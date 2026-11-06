@@ -1,30 +1,86 @@
 {% extends 'base.html' %}
-{% load recode %}
+{% load static recode %}
 {% block title %}One problem a day{% endblock %}
 {% block body_class %}page-home{% endblock %}
 
 {% block content %}
 <section class="hero hero-home">
-    <div class="hero-content">
-        <h1>One problem a day.</h1>
-        <p class="hero-description">Same problem for everyone. Solo or in a team of five. Ranked live.</p>
-        <div class="hero-buttons">
-            <a href="{% url 'today' %}" class="button">Solve today's problem</a>
-            {% if not user.is_authenticated %}<a href="{% url 'register' %}" class="button button-ghost">Sign up</a>{% endif %}
-        </div>
-        <div class="drop-card">
-            <div>
-                <div class="drop-meta">Closes in</div>
-                <span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
+    <div class="hero-content hero-split">
+        <div class="hero-copy">
+            <h1>One problem a day.</h1>
+            <p class="hero-description">Same problem for everyone. Solo or in a team of five. Ranked live.</p>
+            <div class="hero-buttons">
+                <a href="{% url 'today' %}" class="button">Solve today's problem</a>
+                {% if not user.is_authenticated %}<a href="{% url 'register' %}" class="button button-ghost">Sign up</a>{% endif %}
             </div>
-            <div class="drop-meta">
-                <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
-                <h3>{{ challenge.title }}</h3>
-                {{ solvers }} solved
+            <div class="drop-card">
+                <div>
+                    <div class="drop-meta">Closes in</div>
+                    <span class="tile-clock" data-countdown="{{ challenge.closes_at.isoformat }}">--:--:--</span>
+                </div>
+                <div class="drop-meta">
+                    <span class="pill pill-{{ challenge.difficulty }}">{{ challenge.get_difficulty_display }}</span>
+                    <h3>{{ challenge.title }}</h3>
+                    {{ solvers }} solved
+                </div>
             </div>
         </div>
+
+        <!-- A round of ReCode, replayed: type a solution, tests flip, score fills, you hit the board. -->
+        <figure class="demo" id="demo" aria-label="How a round of ReCode plays out">
+            <div class="demo-tabbar">
+                <span class="demo-tab" id="demo-file">two_sum.py</span>
+                <span class="pill">Python</span>
+            </div>
+            <pre class="demo-code" aria-hidden="true"><code id="demo-code"></code></pre>
+            <div class="demo-results">
+                <div class="demo-row">
+                    <span class="demo-label">Tests</span>
+                    <ol class="demo-tests" id="demo-tests" aria-hidden="true">
+                        <li class="case-chip">1</li><li class="case-chip">2</li><li class="case-chip">3</li>
+                        <li class="case-chip">4</li><li class="case-chip">5</li><li class="case-chip">6</li>
+                    </ol>
+                </div>
+                <div class="demo-row">
+                    <span class="demo-label">Score</span>
+                    <div class="demo-score">
+                        <div class="score-tiles demo-score-tiles" id="demo-score">
+                            <div class="score-tile" data-max="60"><span class="value">0<small>/60</small></span><span class="label">Correct</span></div>
+                            <div class="score-tile" data-max="20"><span class="value">0<small>/20</small></span><span class="label">Attempts</span></div>
+                            <div class="score-tile" data-max="10"><span class="value">0<small>/10</small></span><span class="label">Speed</span></div>
+                            <div class="score-tile" data-max="10"><span class="value">0<small>/10</small></span><span class="label">Efficiency</span></div>
+                        </div>
+                    </div>
+                </div>
+                <ol class="demo-board" id="demo-board" aria-hidden="true">
+                    <li><span class="rank">1</span><span class="avatar avatar-sm av-1">M</span><span class="name">Mari</span><span class="num">98.2</span></li>
+                    <li class="demo-you"><span class="rank">2</span><span class="avatar avatar-sm av-2">Y</span><span class="name">You</span><span class="num" id="demo-total">0.0</span></li>
+                    <li><span class="rank" id="demo-pushed-rank">2</span><span class="avatar avatar-sm av-3">D</span><span class="name">Dato</span><span class="num">91.7</span></li>
+                </ol>
+            </div>
+            <figcaption class="visually-hidden">An animated example: a solution is typed, all six tests pass, the score fills to the high nineties and the player lands second on the leaderboard.</figcaption>
+        </figure>
     </div>
 </section>
+
+{% if recent|length >= 3 %}
+<section class="ticker" aria-label="Recent solves">
+    <div class="ticker-track">
+        {% for pass in "ab" %}
+        <ul class="ticker-list" {% if forloop.last %}aria-hidden="true"{% endif %}>
+            {% for r in recent %}
+            <li>
+                <span class="avatar avatar-sm av-{{ r.name|tone }}">{{ r.name|initials }}</span>
+                <strong>{{ r.name }}</strong>{% if r.is_team %} <span class="pill pill-team">Team</span>{% endif %}
+                <span class="muted">solved {{ r.title }}</span>
+                <span class="ticker-score">{{ r.score|floatformat:1 }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
 
 <section class="page section">
     <ol class="day-line">
@@ -41,10 +97,10 @@
             <h2 class="mb-3">Points</h2>
             <table class="points-table">
                 <tbody>
-                    <tr><td class="pts">60</td><td><strong>Correct</strong><span class="muted">All tests pass.</span></td></tr>
-                    <tr><td class="pts">20</td><td><strong>Attempts</strong><span class="muted">Fewer fails, more points.</span></td></tr>
-                    <tr><td class="pts">10</td><td><strong>Speed</strong><span class="muted">Full marks under 5 minutes.</span></td></tr>
-                    <tr><td class="pts">10</td><td><strong>Efficiency</strong><span class="muted">Fast, lean code.</span></td></tr>
+                    <tr><td class="pts pts-ok">60</td><td><strong>Correct</strong><span class="muted">All tests pass.</span></td></tr>
+                    <tr><td class="pts pts-mid">20</td><td><strong>Attempts</strong><span class="muted">Fewer fails, more points.</span></td></tr>
+                    <tr><td class="pts pts-sky">10</td><td><strong>Speed</strong><span class="muted">Full marks under 5 minutes.</span></td></tr>
+                    <tr><td class="pts pts-violet">10</td><td><strong>Efficiency</strong><span class="muted">Fast, lean code.</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -53,14 +109,16 @@
             {% if top %}
             <ol class="mini-board">
                 {% for row in top %}
-                <li><span class="rank">{{ row.rank }}</span><span class="name">{{ row.name }}{% if row.kind == 'team' %} <span class="pill pill-team">Team</span>{% endif %}</span><span class="num">{{ row.score }}</span></li>
+                <li><span class="rank">{{ row.rank }}</span><span class="avatar avatar-sm av-{{ row.name|tone }}">{{ row.name|initials }}</span><span class="name">{{ row.name }}{% if row.kind == 'team' %} <span class="pill pill-team">Team</span>{% endif %}</span><span class="num">{{ row.score }}</span></li>
                 {% endfor %}
             </ol>
             {% else %}
-            <div class="empty">No solves yet.</div>
+            {% include '_empty.html' with text="No solves yet today." cta_url="/recode/" cta="Be the first" %}
             {% endif %}
             <a href="{% url 'leaderboard' %}">Full leaderboard</a>
         </div>
     </div>
 </section>
 {% endblock %}
+
+{% block extra_js %}<script src="{% static 'home-demo.js' %}"></script>{% endblock %}

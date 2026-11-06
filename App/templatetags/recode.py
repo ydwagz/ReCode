@@ -118,3 +118,9 @@ def score_parts(entry):
         parts.append({"label": label, "value": round(value or 0, 1), "max": maximum, "pct": pct,
                       "state": "full" if pct >= 99 else "partial" if pct > 0 else ""})
     return parts
+
+
+@register.filter
+def tone(name):
+    """A stable colour slot (0-4) for a player or team name. Mirrors ReCode.tone() in recode.js."""
+    return sum(ord(ch) for ch in str(name)) % 5

@@ -27,7 +27,7 @@
                     {% for m in member_rows %}
                     <tr>
                         <td class="muted">{{ forloop.counter }}</td>
-                        <td><span class="avatar avatar-sm">{{ m.user.profile.name|initials }}</span> <a href="{% url 'public_profile' m.user.username %}">{{ m.user.profile.name }}</a>{% if m.is_owner %} <span class="pill">captain</span>{% endif %}</td>
+                        <td><span class="avatar avatar-sm av-{{ m.user.profile.name|tone }}">{{ m.user.profile.name|initials }}</span> <a href="{% url 'public_profile' m.user.username %}">{{ m.user.profile.name }}</a>{% if m.is_owner %} <span class="pill">captain</span>{% endif %}</td>
                         <td class="num">{{ m.streak.current }}</td>
                         <td class="num">{{ m.row.score|default:0 }}</td>
                         {% if is_owner %}<td class="text-end">{% if not m.is_owner %}

@@ -1,0 +1,6 @@
+{% load recode %}<a class="podium-step place-{{ r.rank }}" href="{% if r.kind == 'team' %}{% url 'team_detail' r.key %}{% else %}{% url 'public_profile' r.key %}{% endif %}">
+    <span class="avatar av-{{ r.name|tone }}">{{ r.name|initials }}</span>
+    <span class="podium-name">{{ r.name }}</span>
+    <span class="podium-score">{{ r.score }}</span>
+    <span class="podium-block"><span>{{ r.rank }}</span></span>
+</a>
