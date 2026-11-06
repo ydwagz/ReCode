@@ -157,6 +157,20 @@
     }, { passive: true });
   }
 
+  // ------------------------------------------------------------ the climber
+  // Clicking him gives one big swing; he settles back into his normal sway.
+  document.querySelectorAll(".hanger").forEach((hanger) => {
+    hanger.addEventListener("click", () => {
+      if (reduceMotion()) return;
+      hanger.classList.remove("is-pushed");
+      void hanger.offsetWidth;  // restart the push if he's already swinging hard
+      hanger.classList.add("is-pushed");
+    });
+    hanger.querySelector(".hanger-body").addEventListener("animationend", (e) => {
+      if (e.animationName === "hang-push") hanger.classList.remove("is-pushed");
+    });
+  });
+
   // ------------------------------------------------------------ flash messages
   document.querySelectorAll(".flash-success, .flash-info").forEach((flash) => {
     setTimeout(() => { flash.classList.add("is-leaving"); setTimeout(() => flash.remove(), 400); }, 5000);

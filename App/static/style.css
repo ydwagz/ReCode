@@ -1392,3 +1392,62 @@ textarea.mono, .mono.form-control { font-size: 13.5px; }
     .leaderboard-table td:nth-child(2) .pill { display: none; }
     .leaderboard-table td.rank { width: 36px; }
 }
+
+/* ==========================================================================
+   The climber: hangs from the top edge of today's problem card and swings.
+   Pivot = his hands on the border. Legs trail the body for a sense of weight.
+   ========================================================================== */
+
+.today-panel { position: relative; }
+.hanger {
+    --hang-ease: cubic-bezier(.45, 0, .55, 1);   /* symmetric, so the swing turns gently at each end */
+    position: absolute;
+    top: -6px;                                    /* hands sit exactly on the card's top border */
+    left: 56%;
+    width: 60px; height: 120px;
+    padding: 0; border: 0; background: none;
+    cursor: grab;
+    z-index: 2;
+}
+.hanger:focus-visible { outline-offset: 4px; }
+.hanger svg { display: block; overflow: visible; }
+
+.hanger-skin { fill: #F2C9A0; }
+.hanger-arm { stroke: #F2C9A0; stroke-width: 6; stroke-linecap: round; fill: none; }
+.hanger-sleeve { stroke: var(--accent); stroke-width: 7.5; stroke-linecap: round; fill: none; }
+.hanger-shirt { fill: var(--accent); }
+.hanger-hair { fill: #4A3222; }
+.hanger-pants { stroke: var(--text); stroke-width: 7; stroke-linecap: round; fill: none; }
+.hanger-shoe { fill: var(--tile-ok); }
+.hanger-eyes { fill: #161A2B; }
+.hanger-mouth { stroke: #8A4B2E; stroke-width: 1.3; stroke-linecap: round; fill: none; }
+
+.hanger-body, .hanger-legs, .hanger-eyes { transform-box: view-box; }
+.hanger-body { transform-origin: 30px 6px; animation: hang-swing 1.8s var(--hang-ease) infinite alternate; }
+.hanger-legs { transform-origin: 30px 66px; animation: hang-legs 1.8s var(--hang-ease) -.3s infinite alternate; }
+.hanger-eyes { transform-origin: 30px 26px; animation: hang-blink 4.6s steps(1) infinite; }
+
+@keyframes hang-swing { from { rotate: -10deg; } to { rotate: 10deg; } }
+@keyframes hang-legs  { from { rotate: 9deg; }   to { rotate: -9deg; } }
+@keyframes hang-blink { 0%, 96% { scale: 1 1; } 97%, 99% { scale: 1 .1; } }
+
+/* A push: one big swing that dies down, ending where the normal sway starts (-10deg). */
+.hanger.is-pushed .hanger-body { animation: hang-push 2.4s cubic-bezier(.3, 0, .3, 1) 1; }
+.hanger.is-pushed .hanger-legs { animation: hang-legs .45s var(--hang-ease) 6 alternate; }
+.hanger.is-pushed { cursor: grabbing; }
+@keyframes hang-push {
+    0%   { rotate: -10deg; }
+    18%  { rotate: 34deg; }
+    40%  { rotate: -26deg; }
+    60%  { rotate: 18deg; }
+    80%  { rotate: -14deg; }
+    100% { rotate: -10deg; }
+}
+
+@media (max-width: 700px) { .hanger { display: none; } }   /* would cover the problem title */
+@media (prefers-reduced-motion: reduce) {
+    .hanger-body, .hanger-legs, .hanger-eyes { animation: none !important; }
+}
+/* Long problem titles wrap before they reach the climber. */
+.today-panel > .d-flex > div:first-child { max-width: calc(56% - 36px); }
+@media (max-width: 700px) { .today-panel > .d-flex > div:first-child { max-width: none; } }

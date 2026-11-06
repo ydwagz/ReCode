@@ -34,6 +34,28 @@
 
     <div class="grid-dash">
         <div class="r-card today-panel">
+            <!-- A little climber hanging from the card's top edge. Click to give him a push. -->
+            <button class="hanger" type="button" aria-label="Give the climber a push" title="Give him a push">
+                <svg viewBox="0 0 60 120" width="60" height="120" aria-hidden="true">
+                    <g class="hanger-body">
+                        <path class="hanger-arm" d="M16 7 L21 41 M44 7 L39 41"/>
+                        <path class="hanger-sleeve" d="M20.4 34 L21.4 43 M39.6 34 L38.6 43"/>
+                        <g class="hanger-legs">
+                            <path class="hanger-pants" d="M25.5 66 L24 98 M34.5 66 L36 98"/>
+                            <ellipse class="hanger-shoe" cx="22.5" cy="101" rx="5.5" ry="3.6"/>
+                            <ellipse class="hanger-shoe" cx="37.5" cy="101" rx="5.5" ry="3.6"/>
+                        </g>
+                        <rect class="hanger-shirt" x="19" y="36" width="22" height="33" rx="9"/>
+                        <circle class="hanger-skin" cx="30" cy="27" r="9.5"/>
+                        <path class="hanger-hair" d="M20.6 26 A9.5 9.5 0 0 1 39.4 26 Q35 21.5 30 22.5 Q25 21.5 20.6 26 Z"/>
+                        <g class="hanger-eyes"><circle cx="26.6" cy="26.2" r="1.4"/><circle cx="33.4" cy="26.2" r="1.4"/></g>
+                        <path class="hanger-mouth" d="M27.6 31.2 Q30 33.2 32.4 31.2"/>
+                    </g>
+                    <!-- hands stay put on the edge -->
+                    <circle class="hanger-skin" cx="16" cy="6" r="4.6"/>
+                    <circle class="hanger-skin" cx="44" cy="6" r="4.6"/>
+                </svg>
+            </button>
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <span class="eyebrow">Today's problem</span>
