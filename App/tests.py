@@ -334,6 +334,17 @@ class ApiTests(TestCase):
     def test_requires_token(self):
         self.assertEqual(self.client.get("/api/v1/today/").status_code, 401)
 
+    def test_challenge_list_shows_your_results(self):
+        old = make_two_sum(day=utc_today() - timedelta(days=3))
+        services.submit(self.user, old, GOOD_TWO_SUM, "python")
+        data = self.client.get("/api/v1/challenges/", **self.auth).json()
+        rows = {c["slug"]: c for c in data["challenges"]}
+        self.assertTrue(rows[self.challenge.slug]["is_today"])
+        self.assertFalse(rows[self.challenge.slug]["solved"])
+        self.assertTrue(rows[old.slug]["solved"])
+        self.assertEqual(data["challenges"][0]["slug"], self.challenge.slug)
+        self.assertEqual(self.client.get("/api/v1/challenges/").status_code, 401)
+
     def test_pull_and_submit(self):
         data = self.client.get("/api/v1/today/", **self.auth).json()
         self.assertEqual(data["challenge"]["slug"], self.challenge.slug)

@@ -68,9 +68,9 @@
 
             <h5 class="section-label mt-4">VS Code</h5>
             <ol class="small">
-                <li>Install the extension from <code>plugins/vscode</code> in the ReCode repo (<em>Extensions … Install from VSIX</em>, or open the folder and press <kbd>F5</kbd>).</li>
-                <li>Run <strong>ReCode: Set API Token</strong> and paste the token above. Set <code>recode.serverUrl</code> to <code>{{ request.scheme }}://{{ request.get_host }}</code>.</li>
-                <li>Use <strong>ReCode: Pull Today's Challenge</strong>, <strong>Run Examples</strong> and <strong>Submit Current File</strong>.</li>
+                <li>In VS Code: <em>Extensions → … → Install from VSIX</em>, and pick <code>plugins/vscode/recode-1.1.0.vsix</code> from the ReCode repo.</li>
+                <li>Click the <strong>ReCode</strong> icon in the activity bar → <strong>Sign in</strong>. Use <code>{{ request.scheme }}://{{ request.get_host }}</code> as the address and paste the token above.</li>
+                <li>Click today's problem in the sidebar to pull it, then use <strong>Run examples</strong> (<kbd>Ctrl+Alt+R</kbd>) and <strong>Submit</strong> (<kbd>Ctrl+Alt+Enter</kbd>).</li>
             </ol>
 
             <h5 class="section-label">Any editor (CLI)</h5>

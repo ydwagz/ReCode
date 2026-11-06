@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .. import runner, services, streaks
-from ..models import Challenge, Profile
+from ..models import Challenge, Profile, utc_today
 from .helpers import json_body, json_error, json_errors, serialize_entry, serialize_run
 
 
@@ -72,6 +72,25 @@ def api_me(request):
 @require_GET
 def api_today(request):
     return JsonResponse({"ok": True, "challenge": _challenge_payload(services.todays_challenge(), request.user)})
+
+
+@token_required
+@require_GET
+def api_challenges(request):
+    """Recent public problems (today first), with the caller's result on each."""
+    services.todays_challenge()
+    today = utc_today()
+    challenges = list(Challenge.objects.filter(team__isnull=True, release_date__lte=today).order_by("-release_date")[:30])
+    entries = {e.challenge_id: e for e in services.user_entries(request.user).filter(challenge__in=challenges)}
+    return JsonResponse({"ok": True, "challenges": [
+        {
+            "slug": c.slug, "title": c.title, "difficulty": c.difficulty,
+            "release_date": c.release_date.isoformat(), "is_today": c.release_date == today,
+            "solved": bool(entries.get(c.pk) and entries[c.pk].solved),
+            "score": entries[c.pk].score if c.pk in entries and entries[c.pk].solved else None,
+        }
+        for c in challenges
+    ]})
 
 
 @token_required

@@ -49,6 +49,7 @@ urlpatterns = [
     # Plugin / IDE API
     path("api/v1/me/", views.api_me, name="api_me"),
     path("api/v1/today/", views.api_today, name="api_today"),
+    path("api/v1/challenges/", views.api_challenges, name="api_challenges"),
     path("api/v1/challenges/<slug:slug>/", views.api_challenge, name="api_challenge"),
     path("api/v1/run/", views.api_run, name="api_run"),
     path("api/v1/submit/", views.api_submit, name="api_submit"),

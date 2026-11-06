@@ -46,8 +46,8 @@ python manage.py test App
 Get your token from **Settings → Integrations**.
 
 * **Any editor:** `plugins/recode_cli.py` uses only the standard library. Commands are `pull`, `test` (local), `run`, `submit [--team]` and `me`.
-* **VS Code:** `plugins/vscode/`. Its commands are *Pull Today's Challenge*, *Run Examples* and *Submit Current File*, and your streak shows in the status bar. See its README.
-* **REST:** send `Authorization: Token <token>`. Endpoints are `GET /api/v1/me/`, `GET /api/v1/today/`, `GET /api/v1/challenges/<slug>/`, `POST /api/v1/run/` and `POST /api/v1/submit/`.
+* **VS Code:** install `plugins/vscode/recode-1.1.0.vsix` (*Extensions → … → Install from VSIX*). It adds a ReCode sidebar (today's problem, your streak, the top 5, recent problems), Run/Submit buttons above your solution, and your streak and time left in the status bar. See `plugins/vscode/README.md`.
+* **REST:** send `Authorization: Token <token>`. Endpoints are `GET /api/v1/me/`, `GET /api/v1/today/`, `GET /api/v1/challenges/` (recent problems with your results), `GET /api/v1/challenges/<slug>/`, `POST /api/v1/run/` and `POST /api/v1/submit/`.
 * **Webhooks:** ReCode POSTs a `challenge.solved` JSON event to your URL whenever you or your team solve a challenge.
 
 ## Project layout

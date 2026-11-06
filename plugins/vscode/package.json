@@ -1,28 +1,225 @@
 {
   "name": "recode",
   "displayName": "ReCode",
-  "description": "Pull, run and submit the ReCode daily challenge without leaving VS Code.",
-  "version": "1.0.0",
+  "description": "Pull the ReCode daily problem, run the examples and submit \u2014 without leaving VS Code.",
+  "version": "1.1.0",
   "publisher": "recode",
-  "license": "MIT",
-  "engines": { "vscode": "^1.80.0" },
-  "categories": ["Education", "Other"],
+  "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ydwagz/ReCode"
+  },
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "categories": [
+    "Education",
+    "Other"
+  ],
+  "keywords": [
+    "coding challenge",
+    "daily",
+    "leaderboard",
+    "practice"
+  ],
   "main": "./extension.js",
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "recode",
+          "title": "ReCode",
+          "icon": "media/recode.svg"
+        }
+      ]
+    },
+    "views": {
+      "recode": [
+        {
+          "id": "recode.sidebar",
+          "name": "Today"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "recode.sidebar",
+        "contents": "Connect to your ReCode website to see today's problem, your streak and the live leaderboard.\n[Sign in](command:recode.signIn)\nYour token is under Settings \u2192 Integrations on the website.",
+        "when": "!recode.signedIn"
+      }
+    ],
     "commands": [
-      { "command": "recode.setToken", "title": "ReCode: Set API Token" },
-      { "command": "recode.pull", "title": "ReCode: Pull Today's Challenge" },
-      { "command": "recode.run", "title": "ReCode: Run Examples" },
-      { "command": "recode.submit", "title": "ReCode: Submit Current File" },
-      { "command": "recode.status", "title": "ReCode: Show My Streak" }
+      {
+        "command": "recode.signIn",
+        "title": "Sign In",
+        "category": "ReCode",
+        "icon": "$(sign-in)"
+      },
+      {
+        "command": "recode.signOut",
+        "title": "Sign Out",
+        "category": "ReCode",
+        "icon": "$(sign-out)"
+      },
+      {
+        "command": "recode.refresh",
+        "title": "Refresh",
+        "category": "ReCode",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "recode.pullToday",
+        "title": "Pull Today's Problem",
+        "category": "ReCode",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "recode.pullProblem",
+        "title": "Pull a Problem\u2026",
+        "category": "ReCode",
+        "icon": "$(list-unordered)"
+      },
+      {
+        "command": "recode.run",
+        "title": "Run Examples",
+        "category": "ReCode",
+        "icon": "$(play)"
+      },
+      {
+        "command": "recode.submit",
+        "title": "Submit Current File",
+        "category": "ReCode",
+        "icon": "$(check)"
+      },
+      {
+        "command": "recode.openInBrowser",
+        "title": "Open in Browser",
+        "category": "ReCode",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "recode.menu",
+        "title": "Show Actions",
+        "category": "ReCode"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "recode.pullToday",
+          "when": "view == recode.sidebar && recode.signedIn",
+          "group": "navigation@1"
+        },
+        {
+          "command": "recode.refresh",
+          "when": "view == recode.sidebar && recode.signedIn",
+          "group": "navigation@2"
+        },
+        {
+          "command": "recode.pullProblem",
+          "when": "view == recode.sidebar && recode.signedIn",
+          "group": "more@1"
+        },
+        {
+          "command": "recode.signOut",
+          "when": "view == recode.sidebar && recode.signedIn",
+          "group": "more@2"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "recode.run",
+          "when": "recode.signedIn && resourceExtname =~ /^\\.(py|js)$/",
+          "group": "navigation@1"
+        },
+        {
+          "command": "recode.submit",
+          "when": "recode.signedIn && resourceExtname =~ /^\\.(py|js)$/",
+          "group": "navigation@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "recode.signOut",
+          "when": "recode.signedIn"
+        },
+        {
+          "command": "recode.run",
+          "when": "recode.signedIn"
+        },
+        {
+          "command": "recode.submit",
+          "when": "recode.signedIn"
+        },
+        {
+          "command": "recode.pullToday",
+          "when": "recode.signedIn"
+        },
+        {
+          "command": "recode.pullProblem",
+          "when": "recode.signedIn"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "recode.run",
+        "key": "ctrl+alt+r",
+        "mac": "cmd+alt+r",
+        "when": "editorTextFocus && recode.signedIn"
+      },
+      {
+        "command": "recode.submit",
+        "key": "ctrl+alt+enter",
+        "mac": "cmd+alt+enter",
+        "when": "editorTextFocus && recode.signedIn"
+      }
     ],
     "configuration": {
       "title": "ReCode",
       "properties": {
-        "recode.serverUrl": { "type": "string", "default": "http://127.0.0.1:8000", "description": "Your ReCode server." },
-        "recode.language": { "type": "string", "enum": ["python", "javascript"], "default": "python", "description": "Language for pulled starter files." }
+        "recode.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Address of your ReCode website."
+        },
+        "recode.language": {
+          "type": "string",
+          "enum": [
+            "python",
+            "javascript"
+          ],
+          "default": "python",
+          "description": "Language for new solution files."
+        },
+        "recode.folder": {
+          "type": "string",
+          "default": "recode",
+          "description": "Folder (inside your workspace) where pulled problems are saved."
+        },
+        "recode.openProblemOnPull": {
+          "type": "boolean",
+          "default": true,
+          "description": "Open the problem description beside the code when you pull."
+        },
+        "recode.confirmSubmit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Ask before submitting (a failed submission costs attempt points)."
+        },
+        "recode.showOutputOnRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the ReCode output panel after Run and Submit."
+        }
       }
     }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "package": "npx --yes @vscode/vsce@3.2.1 package --no-dependencies --skip-license"
   }
 }
