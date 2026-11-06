@@ -133,7 +133,7 @@
     };
     requestAnimationFrame(step);
   }
-  if (!reduceMotion() && "IntersectionObserver" in window) {
+  if (!reduceMotion() && !html.classList.contains("no-enter") && "IntersectionObserver" in window) {
     const seen = new IntersectionObserver((entries) => entries.forEach((entry) => {
       if (entry.isIntersecting) { countUp(entry.target); seen.unobserve(entry.target); }
     }), { threshold: 0.4 });
@@ -161,7 +161,10 @@
     const rect = toggle.getBoundingClientRect();
     html.style.setProperty("--vt-x", rect.left + rect.width / 2 + "px");
     html.style.setProperty("--vt-y", rect.top + rect.height / 2 + "px");
-    document.startViewTransition(apply);
+    // While the theme reveal runs, the icons swap instantly and cross-fade in their own layer
+    // (style transitions are held during a view transition and would otherwise lag behind).
+    html.classList.add("theme-switching");
+    document.startViewTransition(apply).finished.finally(() => html.classList.remove("theme-switching"));
   });
 
   // Score breakdown as four tiles (used by the challenge page after a submit).

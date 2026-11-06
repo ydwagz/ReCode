@@ -20,4 +20,14 @@
         {% csrf_token %}
         <button class="link-btn" id="resend-btn" type="submit" data-wait="{{ wait }}">Resend code</button>
     </form>
+    {% if email_form %}
+    <details class="change-email">
+        <summary class="link-btn">Change email</summary>
+        <form method="post" action="{% url 'verify_change_email' %}" class="d-flex gap-2 mt-2">
+            {% csrf_token %}
+            <input type="email" name="email" class="form-control" value="{{ email_form.email.value }}" required aria-label="New email">
+            <button class="btn-r btn-r-ghost">Send</button>
+        </form>
+    </details>
+    {% endif %}
 </div>

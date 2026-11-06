@@ -8,14 +8,6 @@
         <p class="muted">Enter the code sent to <strong>{{ masked }}</strong>.</p>
         {% url 'verify_email' as post_url %}{% url 'verify_resend' as resend_url %}
         {% include '_code_form.html' %}
-        <details class="change-email">
-            <summary class="link-btn">Change email</summary>
-            <form method="post" action="{% url 'verify_change_email' %}" class="d-flex gap-2 mt-2">
-                {% csrf_token %}
-                <input type="email" name="email" class="form-control" value="{{ email_form.email.value }}" required aria-label="New email">
-                <button class="btn-r btn-r-ghost">Send</button>
-            </form>
-        </details>
     </div>
 </section>
 {% endblock %}

@@ -335,11 +335,14 @@
     consoleEl.innerHTML = html;
   }
 
+  // Busy state keeps the button's width: the label stays (hidden) and dots play over it.
   async function withBusy(btn, label, fn) {
     if (btn.disabled) return;
-    const old = btn.textContent;
-    btn.disabled = true; btn.textContent = label;
-    try { await fn(); } finally { if (btn.textContent === label) { btn.textContent = old; btn.disabled = false; } }
+    btn.disabled = true; btn.classList.add("is-busy"); btn.setAttribute("aria-label", label);
+    try { await fn(); } finally {
+      btn.classList.remove("is-busy"); btn.removeAttribute("aria-label");
+      if (btn.textContent.trim() !== "Solved") btn.disabled = false;
+    }
   }
 
   function run() {
